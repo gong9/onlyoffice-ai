@@ -45,16 +45,14 @@ export class DocumentService {
       name: 'gz',
     };
     // 添加插件配置
-    if (query.usePlugin === 'y') {
-      editorConfig.editorConfig.plugins = {
-        autostart: [],
-        pluginsData: [
-          `${this.config.get(
-            'domain',
-          )}/static/plugins/plugin-hello/config.json`,
-        ],
-      };
-    }
+
+    editorConfig.editorConfig.plugins = {
+      autostart: [],
+      pluginsData: [
+        `http://localhost:3000/static/plugins/plugin-hello/config.json`,
+      ],
+    };
+
     // 加密编辑器参数
     if (query.useJwtEncrypt === 'y') {
       this.onlyofficeService.signJwt(editorConfig);

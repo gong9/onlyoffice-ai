@@ -32,7 +32,7 @@ export default {
     // 获取文档配置信息
     queryDocumentInfo () {
       this.loading.editor = true
-      queryDocumentInfo({ key: 'test07.docx', useJwtEncrypt: 'y' })
+      queryDocumentInfo({ key: 'test09.docx', useJwtEncrypt: 'y' })
         .then(res => {
           const data = res.data || {}
           const { id, remarks } = data

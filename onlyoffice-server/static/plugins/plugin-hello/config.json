@@ -1,9 +1,9 @@
 {
-  "name": "Hello",
+  "name": "校对",
   "guid": "asc.{11700c35-1fdb-4e37-9edb-b31637139601}",
   "variations": [
     {
-      "description": "Hello Word",
+      "description": "校对",
       "url": "index.html",
       "icons": [
         "icon.png",
