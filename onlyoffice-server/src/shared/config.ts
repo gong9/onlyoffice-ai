@@ -6,7 +6,7 @@ export default () => ({
   port: process.env.PORT,
   apiPrefix: process.env.API_PREFIX,
   domain: process.env.DOMAIN,
-  staticPath: join(process.cwd(), '/static'),
+  staticPath: join(process.cwd(), 'static'),
   onlyoffice: {
     secret: process.env.ONLYOFFICE_SECRET,
     domain: process.env.ONLYOFFICE_DOMAIN,

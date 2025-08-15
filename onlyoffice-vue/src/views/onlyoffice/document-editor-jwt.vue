@@ -32,7 +32,13 @@ export default {
     // 获取文档配置信息
     queryDocumentInfo () {
       this.loading.editor = true
-      queryDocumentInfo({ key: 'test11.docx', useJwtEncrypt: 'y' })
+      
+      // 从URL参数中获取key和加密设置
+      const urlParams = new URLSearchParams(window.location.search)
+      const key = urlParams.get('key') || 'test11.docx'
+      const useJwtEncrypt = urlParams.get('useJwtEncrypt') || 'y'
+      
+      queryDocumentInfo({ key, useJwtEncrypt })
         .then(res => {
           const data = res.data || {}
           const { id, remarks } = data

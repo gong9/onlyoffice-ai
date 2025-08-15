@@ -31,7 +31,7 @@ export function forceSaveDocumentInfo (data) {
 export function queryDocumentInfo (params) {
   return request({
     method: 'get',
-    url: '/api/v1/document/documentInfo',
+    url: '/api/v1/document/info',
     params
   })
 }
