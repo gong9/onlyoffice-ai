@@ -73,7 +73,8 @@ export class DocumentController {
         filename: (req, file, callback) => {
           // 生成唯一文件名
           // eslint-disable-next-line prettier/prettier
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
           const ext = extname(file.originalname);
           callback(null, `upload-${uniqueSuffix}${ext}`);
         },
@@ -87,13 +88,32 @@ export class DocumentController {
           'application/msword', // .doc
           'application/vnd.ms-excel', // .xls
           'application/vnd.ms-powerpoint', // .ppt
+          'application/pdf', // .pdf
         ];
 
-        if (allowedMimes.includes(file.mimetype)) {
+        // 检查文件扩展名作为备用验证
+        const fileExt = extname(file.originalname).toLowerCase();
+        const allowedExtensions = [
+          '.docx',
+          '.xlsx',
+          '.pptx',
+          '.doc',
+          '.xls',
+          '.ppt',
+          '.pdf',
+        ];
+
+        if (
+          allowedMimes.includes(file.mimetype) ||
+          allowedExtensions.includes(fileExt)
+        ) {
           callback(null, true);
         } else {
           // eslint-disable-next-line prettier/prettier
-          callback(new BadRequestException('只支持 Office 文档格式 (.docx, .xlsx, .pptx, .doc, .xls, .ppt)'), false);
+          callback(
+            new BadRequestException(`不支持的文件格式，请上传 Office 文档文件`),
+            false,
+          );
         }
       },
       limits: {

@@ -12,7 +12,7 @@
         <input
           ref="fileInput"
           type="file"
-          accept=".docx,.xlsx,.pptx,.doc,.xls,.ppt"
+          accept=".docx,.xlsx,.pptx,.doc,.xls,.ppt,.pdf"
           multiple
           @change="handleFileSelect"
           style="display: none"
@@ -36,7 +36,7 @@
           </div>
           <div class="upload-text">
             <p><strong>点击上传</strong> 或拖拽文件到此区域</p>
-            <p class="upload-hint">支持 .docx, .xlsx, .pptx, .doc, .xls, .ppt 格式，单个文件不超过 50MB</p>
+            <p class="upload-hint">支持 .docx, .xlsx, .pptx, .doc, .xls, .ppt, .pdf 格式，单个文件不超过 50MB</p>
           </div>
         </div>
       </div>
@@ -113,7 +113,17 @@
               <line x1="8" y1="13" x2="16" y2="13" stroke="white" stroke-width="1"/>
               <line x1="12" y1="11" x2="12" y2="17" stroke="white" stroke-width="1"/>
             </svg>
-            <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="#D24726">
+            <svg v-else-if="doc.documentType === 'slide'" width="32" height="32" viewBox="0 0 24 24" fill="#D24726">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
+              <rect x="8" y="12" width="8" height="4" fill="white"/>
+            </svg>
+            <svg v-else-if="doc.documentType === 'pdf'" width="32" height="32" viewBox="0 0 24 24" fill="#FF6B6B">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
+              <text x="12" y="16" text-anchor="middle" fill="white" font-size="8" font-weight="bold">PDF</text>
+            </svg>
+            <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="#999">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14,2 14,8 20,8"/>
               <rect x="8" y="12" width="8" height="4" fill="white"/>
@@ -194,7 +204,7 @@ export default {
     
     async uploadFiles(files) {
       const validFiles = files.filter(file => {
-        const validExtensions = ['.docx', '.xlsx', '.pptx', '.doc', '.xls', '.ppt']
+        const validExtensions = ['.docx', '.xlsx', '.pptx', '.doc', '.xls', '.ppt', '.pdf']
         const extension = '.' + file.name.split('.').pop().toLowerCase()
         return validExtensions.includes(extension)
       })

@@ -47,6 +47,8 @@ export class DocumentService {
       documentType = 'cell';
     } else if (['pptx', 'ppt'].includes(fileExt)) {
       documentType = 'slide';
+    } else if (fileExt === 'pdf') {
+      documentType = 'word'; // PDF 在 OnlyOffice 中需要使用 word 类型才能正确显示
     }
 
     // 设置文档类型
@@ -143,6 +145,7 @@ export class DocumentService {
         '.doc',
         '.xls',
         '.ppt',
+        '.pdf',
       ];
       if (!supportedExtensions.includes(fileExtension)) {
         return {
@@ -183,9 +186,15 @@ export class DocumentService {
       const documentFiles = files
         .filter((file) => {
           const ext = extname(file).toLowerCase();
-          return ['.docx', '.xlsx', '.pptx', '.doc', '.xls', '.ppt'].includes(
-            ext,
-          );
+          return [
+            '.docx',
+            '.xlsx',
+            '.pptx',
+            '.doc',
+            '.xls',
+            '.ppt',
+            '.pdf',
+          ].includes(ext);
         })
         .map((file) => {
           const filePath = join(staticPath, file);
@@ -198,6 +207,8 @@ export class DocumentService {
             documentType = 'cell';
           } else if (['.pptx', '.ppt'].includes(ext)) {
             documentType = 'slide';
+          } else if (ext === '.pdf') {
+            documentType = 'pdf';
           }
 
           return {
