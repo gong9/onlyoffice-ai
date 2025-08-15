@@ -13,15 +13,15 @@
       "EditorsSupport": [
         "word"
       ],
-      "isVisual": true,
+      "isVisual": false,
       "isModal": false,
-      "isInsideMode": true,
+      "isInsideMode": false,
       "initDataType": "none",
       "initData": "",
       "isUpdateOleOnResize": false,
       "buttons": [],
-      "events" : [
-        "onClick"
+      "events": [
+        "onToolbarMenuClick"
       ]
     }
   ]

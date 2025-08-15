@@ -1,8 +1,8 @@
 <template>
   <onlyoffice-editor :loading="loading.editor" :config="editorConfig">
-    <span slot="actions">
+    <!-- <span slot="actions">
       <a-button type="primary" @click="onSave" :loading="loading.save">保存</a-button>
-    </span>
+    </span> -->
   </onlyoffice-editor>
 </template>
 
@@ -32,7 +32,7 @@ export default {
     // 获取文档配置信息
     queryDocumentInfo () {
       this.loading.editor = true
-      queryDocumentInfo({ key: 'test09.docx', useJwtEncrypt: 'y' })
+      queryDocumentInfo({ key: 'test11.docx', useJwtEncrypt: 'y' })
         .then(res => {
           const data = res.data || {}
           const { id, remarks } = data
