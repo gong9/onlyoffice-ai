@@ -1,7 +1,7 @@
 {
-  "eslint.workingDirectories": [
-    "./onlyoffice-server",
-    "./onlyoffice-vue"
-  ],
-  "vetur.validation.interpolation": false
+  "prettier.enable": false,
+  "editor.formatOnSave": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  }
 }

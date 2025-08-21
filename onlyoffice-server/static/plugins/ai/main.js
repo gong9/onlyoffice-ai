@@ -124,26 +124,24 @@
       }
     }
 
-    // 添加批注到文档
     function addCommentToDocument() {
-      // 先清除所有现有批注
       clearAllComments(function () {
         me.callCommand(
           function () {
             var addedCount = 0;
             var targetRanges = [
               {
-                startIndex: 1483,
-                endIndex: 1491,
+                startIndex: 98,
+                endIndex: 106,
                 comment: '标点符号错误',
                 author: 'AI批注',
+                id: 1,
               },
             ];
 
             try {
               var doc = Api.GetDocument();
-              
-              // 预处理：按起始位置排序，便于批量处理
+
               var sortedRanges = targetRanges.slice().sort(function (a, b) {
                 return a.startIndex - b.startIndex;
               });
@@ -154,6 +152,10 @@
                 var globalCharIndex = 0;
                 var processedCount = 0;
 
+                const runOperationsGroupById = {};
+                // 找到所有与当前Run重叠
+                var overlappingComments = [];
+
                 for (var i = 0; i < count; i++) {
                   var element = doc.GetElement(i);
                   if (!element || element.GetClassType() !== 'paragraph')
@@ -161,7 +163,6 @@
 
                   try {
                     var runsCount = element.GetElementsCount();
-                    var runOperations = []; // 存储这个段落中的所有Run操作
 
                     for (var j = 0; j < runsCount; j++) {
                       var run = element.GetElement(j);
@@ -170,20 +171,19 @@
                         if (!text) continue;
 
                         var runStartIndex = globalCharIndex;
-                        // 修复：计算可见字符数，与字符映射表构建逻辑保持一致
                         var visibleCharCount = 0;
                         for (var k = 0; k < text.length; k++) {
                           var char = text[k];
-                          if (char === '\n' || char === '\r' || char === '\t') continue;
+                          if (char === '\n' || char === '\r' || char === '\t')
+                            continue;
                           visibleCharCount++;
                         }
                         var runEndIndex = globalCharIndex + visibleCharCount;
 
-                        // 找到所有与当前Run重叠
-                        var overlappingComments = [];
-
                         for (var r = 0; r < sortedRanges.length; r++) {
                           var range = sortedRanges[r];
+
+                          // 当前run与目标range重叠
                           if (
                             runStartIndex < range.endIndex &&
                             runEndIndex > range.startIndex
@@ -192,8 +192,9 @@
                               0,
                               range.startIndex - runStartIndex,
                             );
+
                             var commentEndInRun = Math.min(
-                              visibleCharCount, // 修复：使用可见字符数
+                              visibleCharCount,
                               range.endIndex - runStartIndex,
                             );
 
@@ -203,42 +204,41 @@
                               comment: range.comment,
                               author: range.author,
                               originalRange: range,
+                              id: range.id,
+                              globalStartIndex: runStartIndex,
+                              run: run,
+                              text: text,
+                              runIndex: j,
                             });
                           }
                         }
 
-                        if (overlappingComments.length > 0) {
-                          // 将操作添加到待处理列表
-                          runOperations.push({
-                            runIndex: j,
-                            run: run,
-                            text: text,
-                            comments: overlappingComments,
-                          });
-                        }
-
                         // console.log(JSON.stringify(text), '可见字符数:', visibleCharCount, '总长度:', text.length);
 
-                        // 修复：只累加可见字符数
                         globalCharIndex += visibleCharCount;
                       }
                     }
 
-                    console.log(globalCharIndex,'globalCharIndex')
+                    console.log(globalCharIndex, 'globalCharIndex');
 
-                    // 批量执行这个段落的所有Run操作（从后往前，避免索引问题）
-                    runOperations.reverse();
+                    // // 批量执行这个段落的所有Run操作（从后往前，避免索引问题）
+                    // runOperations.reverse();
 
-                    for (var op = 0; op < runOperations.length; op++) {
-                      var operation = runOperations[op];
-                      try {
-                        processCommentOperation(element, operation);
-                         console.log(operation,'targetRanges')
-                        processedCount += operation.comments.length;
-                      } catch (e) {
-                        console.error('批注操作失败:', e);
-                      }
-                    }
+                    // for (var op = 0; op < runOperations.length; op++) {
+                    //   var operation = runOperations[op];
+                    //   try {
+                    //     processCommentOperation(element, operation);
+                    //     console.log(operation, 'targetRanges');
+                    //     processedCount += operation.comments.length;
+                    //   } catch (e) {
+                    //     console.error('批注操作失败:', e);
+                    //   }
+                    // }
+
+                    // Object.keys(runOperationsGroupById).forEach(id => {
+                    //   const operations = runOperationsGroupById[id]
+                    //   processCommentOperation(element, operations)
+                    // })
                   } catch (error) {
                     console.error('段落 ' + i + ' 处理失败:', error);
                   }
@@ -247,30 +247,47 @@
                 console.log(
                   '批量批注处理完成，处理了 ' + processedCount + ' 个批注',
                 );
+                mergeRunByCommentId(overlappingComments);
+
                 return processedCount;
               }
 
-             
+              function mergeRunByCommentId(overlappingComments) {
+                const mergedComments = [];
 
+                overlappingComments.forEach((comment) => {
+                  if (comment.id === comment.id) {
+                    mergedComments.push(comment);
+                  }
+                });
+              }
+
+              function mergeRun(runOperationsGroupById) {}
+
+              /**
+               * handle run operation
+               * @param  element
+               * @param  operation
+               * @returns
+               */
               function processCommentOperation(element, operation) {
                 var run = operation.run;
                 var text = operation.text;
                 var comments = operation.comments;
                 var runIndex = operation.runIndex;
 
-                // 如果整个Run都是一个批注
                 if (
                   comments.length === 1 &&
                   comments[0].startInRun === 0 &&
                   comments[0].endInRun === text.length
                 ) {
-                    run.AddComment(
-                      comments[0].comment +
-                        `[${comments[0].originalRange.startIndex}-${comments[0].originalRange.endIndex}]`,
-                      comments[0].author,
-                    );
+                  run.AddComment(
+                    comments[0].comment +
+                      `[${comments[0].originalRange.startIndex}-${comments[0].originalRange.endIndex}]`,
+                    comments[0].author,
+                  );
 
-                    return;
+                  return;
                 }
 
                 try {
@@ -332,13 +349,11 @@
                     });
                   }
 
-                  // 修改当前Run为第一段文本 - 完全仿照高亮逻辑
                   run.ClearContent();
                   if (segments[0] && segments[0].text) {
                     run.AddText(segments[0].text);
                   }
 
-                  // 创建其他段的Run - 完全仿照高亮逻辑
                   for (var s = 1; s < segments.length; s++) {
                     var segment = segments[s];
                     if (!segment.text) continue;
@@ -346,7 +361,6 @@
                     var newRun = Api.CreateRun();
                     newRun.AddText(segment.text);
 
-                    // 应用原始格式 - 完全仿照高亮逻辑
                     try {
                       if (originalFormat.bold)
                         newRun.SetBold(originalFormat.bold);
@@ -362,7 +376,6 @@
                       console.error('格式应用失败:', e);
                     }
 
-                    // 如果是批注段，添加批注 - 这里是与高亮的唯一区别
                     if (segment.hasComment) {
                       try {
                         newRun.AddComment(
@@ -375,38 +388,34 @@
                       }
                     }
 
-                    
                     element.AddElement(newRun, runIndex + s);
                   }
-
                 } catch (e) {
                   console.error('批注操作失败:', e);
                 }
               }
 
-              // 合并重叠批注区间的辅助函数
               function mergeCommentRanges(comments) {
                 if (comments.length <= 1) return comments;
 
-                // 按起始位置排序
                 comments.sort(function (a, b) {
                   return a.startInRun - b.startInRun;
                 });
 
-                var merged = [comments[0]];
-                for (var i = 1; i < comments.length; i++) {
-                  var current = comments[i];
-                  var last = merged[merged.length - 1];
-
-                  if (current.startInRun <= last.endInRun) {
-                    // 重叠，合并
-                    last.endInRun = Math.max(last.endInRun, current.endInRun);
-                    last.comment += '; ' + current.comment; // 合并批注内容
-                  } else {
-                    // 不重叠，添加新区间
-                    merged.push(current);
-                  }
-                }
+                // var merged = [comments[0]];
+                // for (var i = 1; i < comments.length; i++) {
+                //   var current = comments[i];
+                //   var last = merged[merged.length - 1];
+                //
+                //   if (current.startInRun <= last.endInRun) {
+                //     // 重叠，合并
+                //     last.endInRun = Math.max(last.endInRun, current.endInRun);
+                //     last.comment += '; ' + current.comment; // 合并批注内容
+                //   } else {
+                //     // 不重叠，添加新区间
+                //     merged.push(current);
+                //   }
+                // }
 
                 return merged;
               }
@@ -415,54 +424,6 @@
               addedCount = addCommentByCharacterIndexBatch();
             } catch (error) {
               console.error('主要批注添加过程失败:', error);
-            }
-
-            // 验证批注是否正确添加
-            try {
-              console.log('=== 验证批注位置 ===');
-              var allComments = doc.GetAllComments();
-              console.log(
-                '文档中现有批注总数:',
-                allComments ? allComments.length : 0,
-              );
-
-              if (allComments && allComments.length > 0) {
-                for (var i = 0; i < Math.min(5, allComments.length); i++) {
-                  var comment = allComments[i];
-                  try {
-                    var commentText = comment.GetText
-                      ? comment.GetText()
-                      : '无法获取批注文本';
-                    var commentAuthor = comment.GetAuthor
-                      ? comment.GetAuthor()
-                      : '无法获取作者';
-                    console.log(
-                      '批注 ' +
-                        i +
-                        ": 内容='" +
-                        commentText +
-                        "', 作者=" +
-                        commentAuthor,
-                    );
-
-                    // 尝试获取批注所在的位置信息
-                    var range = comment.GetRange ? comment.GetRange() : null;
-                    if (range) {
-                      var rangeText = range.GetText
-                        ? range.GetText()
-                        : '无法获取范围文本';
-                      console.log("  批注位置文本: '" + rangeText + "'");
-                    }
-                  } catch (e) {
-                    console.log(
-                      '批注 ' + i + ': 无法获取详细信息 -',
-                      e.message,
-                    );
-                  }
-                }
-              }
-            } catch (error) {
-              console.error('验证批注失败:', error);
             }
           },
           false,
