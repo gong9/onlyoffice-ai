@@ -1,57 +1,60 @@
 <template>
   <a-skeleton v-bind="skeletonAttrs" :loading="loading">
     <div :key="id" :id="id"></div>
-    <div v-if="$slots.actions" class="MT24 PB24"><slot name="actions"></slot></div>
+    <div v-if="$slots.actions" class="MT24 PB24">
+      <slot name="actions"></slot>
+    </div>
   </a-skeleton>
 </template>
 
 <script>
-import merge from 'lodash.merge'
+import merge from "lodash.merge";
 
-let script
+let script;
 // 脚本标识
-const scriptId = 'onlyoffice-editor'
+const scriptId = "onlyoffice-editor";
 // 异步加载 api.js
-const loadScript = () => new Promise((resolve, reject) => {
-  const src = process.env.VUE_APP_ONLYOFFICE_API_URL
-  script = document.querySelector(`#${scriptId}`)
-  // 加载成功
-  const onLoad = () => {
-    resolve()
-    script.removeEventListener('load', onLoad)
-  }
-  // 加载失败
-  const onError = () => {
-    reject(new Error(`脚本 ${src} 加载失败`))
-    script.removeEventListener('error', onError)
-  }
-  if (!script) {
-    script = document.createElement('script')
-    script.id = scriptId
-    script.src = src
-    script.addEventListener('load', onLoad)
-    script.addEventListener('error', onError)
-    document.head.appendChild(script)
-  } else if (window.DocsAPI) {
-    resolve()
-  } else {
-    script.addEventListener('load', onLoad)
-    script.addEventListener('error', onError)
-  }
-})
+const loadScript = () =>
+  new Promise((resolve, reject) => {
+    const src = process.env.VUE_APP_ONLYOFFICE_API_URL;
+    script = document.querySelector(`#${scriptId}`);
+    // 加载成功
+    const onLoad = () => {
+      resolve();
+      script.removeEventListener("load", onLoad);
+    };
+    // 加载失败
+    const onError = () => {
+      reject(new Error(`脚本 ${src} 加载失败`));
+      script.removeEventListener("error", onError);
+    };
+    if (!script) {
+      script = document.createElement("script");
+      script.id = scriptId;
+      script.src = src;
+      script.addEventListener("load", onLoad);
+      script.addEventListener("error", onError);
+      document.head.appendChild(script);
+    } else if (window.DocsAPI) {
+      resolve();
+    } else {
+      script.addEventListener("load", onLoad);
+      script.addEventListener("error", onError);
+    }
+  });
 
 export default {
   props: {
     config: {
       type: Object,
-      default: null
+      default: null,
     },
     loading: {
       type: Boolean,
-      default: true
-    }
+      default: true,
+    },
   },
-  data () {
+  data() {
     return {
       // 编辑器配置项，完整配置项参见：https://api.onlyoffice.com/editors/config/
       editorConfig: {
@@ -60,7 +63,7 @@ export default {
         // 编辑器高度
         height: 600,
         // 编辑器类型，支持 word、cell（表格）、slide（PPT）
-        documentType: 'word',
+        documentType: "word",
         // 文档配置
         document: {
           // 权限
@@ -74,71 +77,79 @@ export default {
             // 启用导出
             print: true,
             // 启用预览
-            review: true
-          }
+            review: true,
+          },
         },
         editorConfig: {
           // 回调地址
           callbackUrl: process.env.VUE_APP_ONLYOFFICE_CALLBACK,
           // 设置语言
-          lang: 'zh-CN',
+          lang: "zh-CN",
           // customization 字段相关配置详解：https://api.onlyoffice.com/editors/config/editor/customization
           customization: {
             // 强制保存
             forcesave: true,
             features: {
               // 关闭拼写检查
-              spellcheck: true
-            }
-          }
-        }
+              spellcheck: false,
+            },
+            coEditing: {
+              mode: "strict", // strict 模式表示独占编辑
+              change: false, // 禁止在前端切换成 fast 模式
+            },
+          },
+        },
       },
-      id: `editor-${new Date().getTime().toString('32')}`
-    }
+      id: `editor-${new Date().getTime().toString("32")}`,
+    };
   },
   computed: {
-    skeletonAttrs () {
+    skeletonAttrs() {
       return {
         active: true,
         // style: { width: `${this.editorConfig.width}px` },
-        paragraph: { rows: 10 }
-      }
-    }
+        paragraph: { rows: 10 },
+      };
+    },
   },
   watch: {
-    loading (newLoading) {
-      if (newLoading === false) this.initEditor()
+    loading(newLoading) {
+      if (newLoading === false) this.initEditor();
     },
     config: {
-      handler () {
-        this.initEditor()
+      handler() {
+        this.initEditor();
       },
-      deep: true
-    }
+      deep: true,
+    },
   },
-  mounted () {
-    this.initEditor()
+  mounted() {
+    this.initEditor();
   },
-  beforeDestroy () {
+  beforeDestroy() {
     // 组件销毁前销毁编辑器
     if (this.editor) {
-      this.editor.destroyEditor()
-      this.editor = null
+      this.editor.destroyEditor();
+      this.editor = null;
     }
   },
   methods: {
     // 初始化编辑器
-    initEditor () {
-      loadScript(this.src).then(this.createEditor)
+    initEditor() {
+      loadScript(this.src).then(this.createEditor);
     },
     // 创建编辑器
-    createEditor () {
+    createEditor() {
       if (this.editor) {
-        this.editor.destroyEditor()
-        this.editor = null
+        this.editor.destroyEditor();
+        this.editor = null;
       }
-      if (window.DocsAPI) this.editor = new window.DocsAPI.DocEditor(this.id, merge({}, this.editorConfig, this.config))
-    }
-  }
-}
+      if (window.DocsAPI)
+        this.editor = new window.DocsAPI.DocEditor(
+          this.id,
+          merge({}, this.editorConfig, this.config)
+        );
+    },
+  },
+};
 </script>

@@ -137,6 +137,13 @@
                 author: 'AI批注',
                 id: 1,
               },
+              {
+                startIndex: 810,
+                endIndex: 827,
+                comment: '标点符号错误',
+                author: 'AI批注',
+                id: 2,
+              },
             ];
 
             try {
@@ -152,20 +159,18 @@
                 var globalCharIndex = 0;
                 var processedCount = 0;
 
-                const runOperationsGroupById = {};
-                // 找到所有与当前Run重叠
                 var overlappingComments = [];
 
                 for (var i = 0; i < count; i++) {
-                  var element = doc.GetElement(i);
+                  const element = doc.GetElement(i);
                   if (!element || element.GetClassType() !== 'paragraph')
                     continue;
 
                   try {
-                    var runsCount = element.GetElementsCount();
+                    const runsCount = element.GetElementsCount();
 
                     for (var j = 0; j < runsCount; j++) {
-                      var run = element.GetElement(j);
+                      const run = element.GetElement(j);
                       if (run && run.GetClassType() === 'run') {
                         var text = run.GetText();
                         if (!text) continue;
@@ -198,6 +203,8 @@
                               range.endIndex - runStartIndex,
                             );
 
+                            run.tag = '111';
+
                             overlappingComments.push({
                               startInRun: commentStartInRun,
                               endInRun: commentEndInRun,
@@ -209,6 +216,8 @@
                               run: run,
                               text: text,
                               runIndex: j,
+                              paragraph: element,
+                              paragraphIndex: i,
                             });
                           }
                         }
@@ -220,204 +229,308 @@
                     }
 
                     console.log(globalCharIndex, 'globalCharIndex');
-
-                    // // 批量执行这个段落的所有Run操作（从后往前，避免索引问题）
-                    // runOperations.reverse();
-
-                    // for (var op = 0; op < runOperations.length; op++) {
-                    //   var operation = runOperations[op];
-                    //   try {
-                    //     processCommentOperation(element, operation);
-                    //     console.log(operation, 'targetRanges');
-                    //     processedCount += operation.comments.length;
-                    //   } catch (e) {
-                    //     console.error('批注操作失败:', e);
-                    //   }
-                    // }
-
-                    // Object.keys(runOperationsGroupById).forEach(id => {
-                    //   const operations = runOperationsGroupById[id]
-                    //   processCommentOperation(element, operations)
-                    // })
                   } catch (error) {
                     console.error('段落 ' + i + ' 处理失败:', error);
                   }
                 }
 
+                //
+
                 console.log(
                   '批量批注处理完成，处理了 ' + processedCount + ' 个批注',
                 );
-                mergeRunByCommentId(overlappingComments);
+
+                const runOperationsGroupByIdObject =
+                  mergeRunByCommentId(overlappingComments);
+
+                Object.keys(runOperationsGroupByIdObject).forEach((id) => {
+                  const operations = runOperationsGroupByIdObject[id];
+                  processRun(operations);
+                });
 
                 return processedCount;
               }
 
-              function mergeRunByCommentId(overlappingComments) {
-                const mergedComments = [];
-
-                overlappingComments.forEach((comment) => {
-                  if (comment.id === comment.id) {
-                    mergedComments.push(comment);
-                  }
-                });
-              }
-
-              function mergeRun(runOperationsGroupById) {}
-
               /**
-               * handle run operation
-               * @param  element
-               * @param  operation
+               * 根据comment id 合并run
+               * @param  overlappingComments
                * @returns
                */
-              function processCommentOperation(element, operation) {
-                var run = operation.run;
-                var text = operation.text;
-                var comments = operation.comments;
-                var runIndex = operation.runIndex;
+              function mergeRunByCommentId(overlappingComments) {
+                const runOperationsGroupByIdObject = {};
 
-                if (
-                  comments.length === 1 &&
-                  comments[0].startInRun === 0 &&
-                  comments[0].endInRun === text.length
-                ) {
+                overlappingComments.forEach((comment) => {
+                  if (!runOperationsGroupByIdObject[comment.id]) {
+                    runOperationsGroupByIdObject[comment.id] = [];
+                  }
+                  runOperationsGroupByIdObject[comment.id].push(comment);
+
+                  runOperationsGroupByIdObject[comment.id].sort((a, b) => {
+                    return a.globalStartIndex - b.globalStartIndex;
+                  });
+                });
+
+                return runOperationsGroupByIdObject;
+              }
+
+              function processRun(operations) {
+                if (!operations || operations.length === 0) return;
+                mergeAdjacentRuns(operations);
+              }
+
+              /**
+               * 合并相邻的run
+               * @param operations
+               * @returns
+               */
+              function mergeAdjacentRuns(operations) {
+                if (!operations || operations.length === 0) return;
+
+                if (operations.length === 1) {
+                  processSingleRun(operations[0]);
+                } else {
+                  processMultipleRuns(operations);
+                }
+              }
+
+              /**
+               * 处理单个run
+               * @param operation
+               * @returns
+               */
+              function processSingleRun(operation) {
+                const run = operation.run;
+                const text = operation.text;
+                const startInRun = operation.startInRun;
+                const endInRun = operation.endInRun;
+                const paragraph = operation.paragraph;
+
+                // 如果批注覆盖整个run，直接添加批注
+                if (startInRun === 0 && endInRun === text.length) {
                   run.AddComment(
-                    comments[0].comment +
-                      `[${comments[0].originalRange.startIndex}-${comments[0].originalRange.endIndex}]`,
-                    comments[0].author,
+                    operation.comment +
+                      `[${operation.originalRange.startIndex}-${operation.originalRange.endIndex}]`,
+                    operation.author,
                   );
-
                   return;
                 }
 
-                try {
-                  var mergedComments = mergeCommentRanges(comments);
+                const runFormat = getRunFormat(run);
+                const beforeText = text.substring(0, startInRun);
+                const commentText = text.substring(startInRun, endInRun);
+                const afterText = text.substring(endInRun);
 
-                  var originalFormat = {};
-                  try {
-                    originalFormat.bold = run.GetBold ? run.GetBold() : false;
-                    originalFormat.italic = run.GetItalic
-                      ? run.GetItalic()
-                      : false;
-                    originalFormat.underline = run.GetUnderline
-                      ? run.GetUnderline()
-                      : false;
-                    originalFormat.fontSize = run.GetFontSize
-                      ? run.GetFontSize()
-                      : null;
-                    originalFormat.fontFamily = run.GetFontFamily
-                      ? run.GetFontFamily()
-                      : null;
-                  } catch (e) {
-                    console.log('格式获取失败:', e);
-                  }
+                run.ClearContent();
 
-                  // 按照批注区间拆分文本
-                  var segments = [];
-                  var lastEnd = 0;
-
-                  for (var c = 0; c < mergedComments.length; c++) {
-                    var comment = mergedComments[c];
-
-                    // 前段（无批注）
-                    if (comment.startInRun > lastEnd) {
-                      segments.push({
-                        text: text.substring(lastEnd, comment.startInRun),
-                        hasComment: false,
-                      });
-                    }
-
-                    // 批注段
-                    segments.push({
-                      text: text.substring(
-                        comment.startInRun,
-                        comment.endInRun,
-                      ),
-                      hasComment: true,
-                      comment: comment.comment,
-                      author: comment.author,
-                    });
-
-                    lastEnd = comment.endInRun;
-                  }
-
-                  // 最后的无批注段
-                  if (lastEnd < text.length) {
-                    segments.push({
-                      text: text.substring(lastEnd),
-                      hasComment: false,
-                    });
-                  }
-
-                  run.ClearContent();
-                  if (segments[0] && segments[0].text) {
-                    run.AddText(segments[0].text);
-                  }
-
-                  for (var s = 1; s < segments.length; s++) {
-                    var segment = segments[s];
-                    if (!segment.text) continue;
-
-                    var newRun = Api.CreateRun();
-                    newRun.AddText(segment.text);
-
-                    try {
-                      if (originalFormat.bold)
-                        newRun.SetBold(originalFormat.bold);
-                      if (originalFormat.italic)
-                        newRun.SetItalic(originalFormat.italic);
-                      if (originalFormat.underline)
-                        newRun.SetUnderline(originalFormat.underline);
-                      if (originalFormat.fontSize)
-                        newRun.SetFontSize(originalFormat.fontSize);
-                      if (originalFormat.fontFamily)
-                        newRun.SetFontFamily(originalFormat.fontFamily);
-                    } catch (e) {
-                      console.error('格式应用失败:', e);
-                    }
-
-                    if (segment.hasComment) {
-                      try {
-                        newRun.AddComment(
-                          segment.comment +
-                            `[${segment.originalRange.startIndex}-${segment.originalRange.endIndex}]`,
-                          segment.author,
-                        );
-                      } catch (e) {
-                        console.error('精确批注失败:', e);
-                      }
-                    }
-
-                    element.AddElement(newRun, runIndex + s);
-                  }
-                } catch (e) {
-                  console.error('批注操作失败:', e);
+                if (beforeText) {
+                  run.AddText(beforeText);
                 }
+
+                // 批注run
+                const commentRun = Api.CreateRun();
+                commentRun.AddText(commentText);
+                applyRunFormat(commentRun, runFormat);
+
+                const runIndex = operation.runIndex;
+                paragraph.AddElement(
+                  commentRun,
+                  runIndex + (beforeText ? 1 : 0),
+                );
+
+                if (afterText) {
+                  const afterRun = Api.CreateRun();
+                  afterRun.AddText(afterText);
+                  applyRunFormat(afterRun, runFormat);
+                  paragraph.AddElement(
+                    afterRun,
+                    runIndex + (beforeText ? 2 : 1),
+                  );
+                }
+
+                commentRun.AddComment(
+                  operation.comment +
+                    `[${operation.originalRange.startIndex}-${operation.originalRange.endIndex}]`,
+                  operation.author,
+                );
               }
 
-              function mergeCommentRanges(comments) {
-                if (comments.length <= 1) return comments;
+              /**
+               * 处理一个range 包含多个run的情况
+               * @param operations
+               * @returns
+               */
+              function processMultipleRuns(operations) {
+                if (isRunsCrossParagraph(operations)) {
+                  console.error('range 跨段落， 请检查是否存在误报');
+                  return;
+                }
 
-                comments.sort(function (a, b) {
-                  return a.startInRun - b.startInRun;
-                });
+                const firstOp = operations[0];
+                const lastOp = operations[operations.length - 1];
+                const firstRun = firstOp.run;
 
-                // var merged = [comments[0]];
-                // for (var i = 1; i < comments.length; i++) {
-                //   var current = comments[i];
-                //   var last = merged[merged.length - 1];
-                //
-                //   if (current.startInRun <= last.endInRun) {
-                //     // 重叠，合并
-                //     last.endInRun = Math.max(last.endInRun, current.endInRun);
-                //     last.comment += '; ' + current.comment; // 合并批注内容
-                //   } else {
-                //     // 不重叠，添加新区间
-                //     merged.push(current);
-                //   }
-                // }
+                const firstRunFormat = getRunFormat(firstRun);
+                const lastRunFormat = getRunFormat(lastOp.run);
 
-                return merged;
+                const beforeText = firstOp.text.substring(
+                  0,
+                  firstOp.startInRun,
+                );
+
+                let commentText = firstOp.text.substring(firstOp.startInRun);
+
+                for (let i = 1; i < operations.length - 1; i++) {
+                  commentText += operations[i].text;
+                }
+
+                if (operations.length > 1) {
+                  commentText += lastOp.text.substring(0, lastOp.endInRun);
+                }
+
+                const afterText = lastOp.text.substring(lastOp.endInRun);
+
+                firstRun.ClearContent();
+
+                for (let i = 1; i < operations.length; i++) {
+                  const op = operations[i];
+                  op.run.ClearContent();
+                }
+
+                if (beforeText) {
+                  firstRun.AddText(beforeText);
+                }
+
+                const commentRun = Api.CreateRun();
+                commentRun.AddText(commentText);
+                applyRunFormat(commentRun, firstRunFormat);
+
+                // commentRun.SetHighlight('yellow');
+
+                const paragraph = firstOp.paragraph;
+                const runIndex = firstOp.runIndex;
+
+                paragraph.AddElement(
+                  commentRun,
+                  runIndex + (beforeText ? 1 : 0),
+                );
+
+                if (afterText) {
+                  const afterRun = Api.CreateRun();
+                  afterRun.AddText(afterText);
+                  applyRunFormat(afterRun, lastRunFormat);
+                  paragraph.AddElement(
+                    afterRun,
+                    runIndex + (beforeText ? 2 : 1),
+                  );
+                }
+
+                commentRun.AddComment(
+                  firstOp.comment +
+                    `[${firstOp.originalRange.startIndex}-${firstOp.originalRange.endIndex}]`,
+                  firstOp.author,
+                );
+              }
+
+              /**
+               * 检查operations中的run是否跨段落
+               * @param  operations
+               */
+              function isRunsCrossParagraph(operations) {
+                if (!operations || operations.length <= 1) {
+                  return false;
+                }
+
+                const firstParagraphIndex = operations[0].paragraphIndex;
+
+                for (let i = 1; i < operations.length; i++) {
+                  if (operations[i].paragraphIndex !== firstParagraphIndex) {
+                    return true;
+                  }
+                }
+
+                return false;
+              }
+
+              /**
+               * 获取run的格式信息
+               * @param  run
+               * @returns 格式对象
+               */
+              function getRunFormat(run) {
+                const format = {};
+
+                try {
+                  format.bold = run.GetBold ? run.GetBold() : false;
+                  format.italic = run.GetItalic ? run.GetItalic() : false;
+                  format.underline = run.GetUnderline
+                    ? run.GetUnderline()
+                    : false;
+                  format.strikeout = run.GetStrikeout
+                    ? run.GetStrikeout()
+                    : false;
+                  format.fontSize = run.GetFontSize ? run.GetFontSize() : null;
+                  format.fontFamily = run.GetFontFamily
+                    ? run.GetFontFamily()
+                    : null;
+                  format.color = run.GetColor ? run.GetColor() : null;
+                  format.vertAlign = run.GetVertAlign
+                    ? run.GetVertAlign()
+                    : null;
+                  format.spacing = run.GetSpacing ? run.GetSpacing() : null;
+                  format.caps = run.GetCaps ? run.GetCaps() : null;
+                  format.smallCaps = run.GetSmallCaps
+                    ? run.GetSmallCaps()
+                    : null;
+                } catch (e) {
+                  console.log('获取格式失败:', e);
+                }
+
+                return format;
+              }
+
+              /**
+               * 应用格式到run
+               * @param  run
+               * @param  format
+               */
+              function applyRunFormat(run, format) {
+                try {
+                  if (format.bold !== undefined && run.SetBold) {
+                    run.SetBold(format.bold);
+                  }
+                  if (format.italic !== undefined && run.SetItalic) {
+                    run.SetItalic(format.italic);
+                  }
+                  if (format.underline !== undefined && run.SetUnderline) {
+                    run.SetUnderline(format.underline);
+                  }
+                  if (format.strikeout !== undefined && run.SetStrikeout) {
+                    run.SetStrikeout(format.strikeout);
+                  }
+                  if (format.fontSize && run.SetFontSize) {
+                    run.SetFontSize(format.fontSize);
+                  }
+                  if (format.fontFamily && run.SetFontFamily) {
+                    run.SetFontFamily(format.fontFamily);
+                  }
+                  if (format.color && run.SetColor) {
+                    run.SetColor(format.color);
+                  }
+                  if (format.vertAlign && run.SetVertAlign) {
+                    run.SetVertAlign(format.vertAlign);
+                  }
+                  if (format.spacing !== undefined && run.SetSpacing) {
+                    run.SetSpacing(format.spacing);
+                  }
+                  if (format.caps !== undefined && run.SetCaps) {
+                    run.SetCaps(format.caps);
+                  }
+                  if (format.smallCaps !== undefined && run.SetSmallCaps) {
+                    run.SetSmallCaps(format.smallCaps);
+                  }
+                } catch (e) {
+                  console.log('应用格式失败:', e);
+                }
               }
 
               // 执行批量批注处理
@@ -494,6 +607,9 @@
     this.attachToolbarMenuClickEvent('addComment', function (data) {
       // 执行批注添加逻辑
       addCommentToDocument();
+      // setTimeout(() => {
+      //    addCommentToDocument();
+      // }, 100);
     });
 
     // 处理获取文档文本按钮点击事件
