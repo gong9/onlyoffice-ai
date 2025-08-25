@@ -8,7 +8,6 @@ import { LoggingInterceptor } from './shared/interceptors/logger.interceptor';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
 
-  // 设置接口前缀
   app.setGlobalPrefix(process.env.API_PREFIX);
 
   app.useGlobalPipes(
@@ -20,19 +19,16 @@ async function bootstrap() {
     }),
   );
 
-  // 添加全局数据响应拦截器
   app.useGlobalInterceptors(
     new ResponseInterceptor(),
     new LoggingInterceptor(),
   );
 
-  // 版本号配置
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: '1',
   });
 
-  // 接口文档配置
   const isTest = process.env.NODE_ENV === 'test';
   if (isTest) {
     const options = new DocumentBuilder()
@@ -45,7 +41,6 @@ async function bootstrap() {
     SwaggerModule.setup('docs', app, document);
   }
 
-  //  启动服务
   await app.listen(process.env.PORT);
 }
 bootstrap();

@@ -23,8 +23,8 @@
             } catch (e) {
               console.log('GetRange方法失败，尝试其他方法');
             }
-            console.log('文档文本长度:', fullText.length);
-            return fullText;
+            console.log('文档文本长度:', fullText.replace(/\r/g, "").length);
+            return fullText.replace(/\r/g, "");
           } catch (error) {
             console.error('获取文档文本失败:', error);
             return '';
@@ -130,17 +130,11 @@
           function () {
             var addedCount = 0;
             var targetRanges = [
+              
               {
-                startIndex: 98,
-                endIndex: 106,
-                comment: '标点符号错误',
-                author: 'AI批注',
-                id: 1,
-              },
-              {
-                startIndex: 810,
-                endIndex: 827,
-                comment: '标点符号错误',
+                startIndex: 3750,
+                endIndex: 3761,
+                comment: '各部门，市纪委，杭州警',
                 author: 'AI批注',
                 id: 2,
               },

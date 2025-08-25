@@ -31,7 +31,6 @@ export class OnlyofficeService {
 
   async callback(body: OnlyofficeCallbackDto): Promise<OnlyofficeCallback> {
     const { url, status } = body;
-    // 正在编辑文档但保存了当前文档状态
     if (status === 6) {
       try {
         // 根据地址下载文档文件

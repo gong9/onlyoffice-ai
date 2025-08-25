@@ -66,16 +66,14 @@ export class DocumentService {
     editorConfig.editorConfig.user = {
       group: '技术部',
       id: 'wytxer',
-      name: 'gz',
+      name: 'AI',
     };
-    // 添加插件配置
 
     editorConfig.editorConfig.plugins = {
       autostart: ['asc.{11700c35-1fdb-4e37-9edb-b31637139601}'],
       pluginsData: [`http://localhost:3000/static/plugins/ai/config.json`],
     };
 
-    // 加密编辑器参数
     if (query.useJwtEncrypt === 'y') {
       this.onlyofficeService.signJwt(editorConfig);
     }

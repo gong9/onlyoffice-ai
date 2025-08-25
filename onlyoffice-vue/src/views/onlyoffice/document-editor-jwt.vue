@@ -1,14 +1,11 @@
 <template>
   <onlyoffice-editor :loading="loading.editor" :config="editorConfig">
-    <!-- <span slot="actions">
-      <a-button type="primary" @click="onSave" :loading="loading.save">保存</a-button>
-    </span> -->
   </onlyoffice-editor>
 </template>
 
 <script>
 import OnlyofficeEditor from './modules/onlyoffice-editor'
-import { queryDocumentInfo, forceSaveDocumentInfo } from '@/api/onlyoffice'
+import { queryDocumentInfo } from '@/api/onlyoffice'
 
 export default {
   data () {
@@ -49,24 +46,6 @@ export default {
           this.loading.editor = false
         })
     },
-    // 保存
-    onSave () {
-      this.loading.forceSave = true
-      const { key } = this.editorConfig.document
-      const { id } = this.detail
-
-      forceSaveDocumentInfo({ id, key, useJwtEncrypt: 'n' })
-        .then(res => {
-          if (res.code === 0) {
-            this.$message.success('保存成功')
-          } else {
-            this.$message.error(res.message)
-          }
-        })
-        .finally(() => {
-          this.loading.forceSave = false
-        })
-    }
   }
 }
 </script>

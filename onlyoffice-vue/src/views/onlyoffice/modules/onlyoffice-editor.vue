@@ -18,12 +18,10 @@ const loadScript = () =>
   new Promise((resolve, reject) => {
     const src = process.env.VUE_APP_ONLYOFFICE_API_URL;
     script = document.querySelector(`#${scriptId}`);
-    // 加载成功
     const onLoad = () => {
       resolve();
       script.removeEventListener("load", onLoad);
     };
-    // 加载失败
     const onError = () => {
       reject(new Error(`脚本 ${src} 加载失败`));
       script.removeEventListener("error", onError);
@@ -107,7 +105,6 @@ export default {
     skeletonAttrs() {
       return {
         active: true,
-        // style: { width: `${this.editorConfig.width}px` },
         paragraph: { rows: 10 },
       };
     },
@@ -127,18 +124,15 @@ export default {
     this.initEditor();
   },
   beforeDestroy() {
-    // 组件销毁前销毁编辑器
     if (this.editor) {
       this.editor.destroyEditor();
       this.editor = null;
     }
   },
   methods: {
-    // 初始化编辑器
     initEditor() {
       loadScript(this.src).then(this.createEditor);
     },
-    // 创建编辑器
     createEditor() {
       if (this.editor) {
         this.editor.destroyEditor();
