@@ -14,7 +14,6 @@
             var doc = Api.GetDocument();
             var fullText = '';
 
-            // 方法1: 尝试使用GetRange获取整个文档的文本
             try {
               var range = doc.GetRange();
               if (range && range.GetText) {
@@ -197,8 +196,6 @@
                               range.endIndex - runStartIndex,
                             );
 
-                            run.tag = '111';
-
                             overlappingComments.push({
                               startInRun: commentStartInRun,
                               endInRun: commentEndInRun,
@@ -228,7 +225,7 @@
                   }
                 }
 
-                //
+                // 
 
                 console.log(
                   '批量批注处理完成，处理了 ' + processedCount + ' 个批注',
@@ -599,20 +596,15 @@
 
     // 处理工具栏按钮点击事件
     this.attachToolbarMenuClickEvent('addComment', function (data) {
-      // 执行批注添加逻辑
       addCommentToDocument();
-      // setTimeout(() => {
-      //    addCommentToDocument();
-      // }, 100);
     });
 
     // 处理获取文档文本按钮点击事件
     this.attachToolbarMenuClickEvent('getDocumentText', function (data) {
-      // 获取文档文本
       getDocumentText(function (text) {
         if (text) {
-          console.log('完整文档文本:', text);
           console.log('文档文本长度:', text.replace(/[\r\n]+/g, '').length);
+          // console.log('文档文本:', text.replace(/[\r\n]+/g, ''));
         } else {
           alert('获取文档文本失败');
         }
@@ -629,10 +621,8 @@
 
     // 处理API校对按钮点击事件
     this.attachToolbarMenuClickEvent('checkDocument', function (data) {
-      // 先获取文档文本
       getDocumentText(function (documentText) {
         if (documentText) {
-          // 调用API进行校对
           callCheckAPI(``, function (error, response) {
             if (error) {
               alert('API校对失败: ' + error);
@@ -647,25 +637,14 @@
       });
     });
 
-    // ===========================================
-    // 业务逻辑函数（保留原有的addCommentAction函数作为备用）
-    // ===========================================
 
     // 添加批注
     function addCommentAction() {
       addCommentToDocument();
     }
 
-    // ===========================================
-    // 事件绑定（保留原有的点击事件绑定）
-    // ===========================================
-
     // 开始添加批注
     $('#addText').click(addCommentAction);
-
-    // ===========================================
-    // 插件生命周期
-    // ===========================================
 
     // 插件事件处理
     window.Asc.plugin.onExternalMouseUp = function () {
