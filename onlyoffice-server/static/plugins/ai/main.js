@@ -132,8 +132,8 @@
             var targetRanges = [
               
               {
-                startIndex: 3750,
-                endIndex: 3761,
+                startIndex: 0,
+                endIndex: 10,
                 comment: '各部门，市纪委，杭州警',
                 author: 'AI批注',
                 id: 2,

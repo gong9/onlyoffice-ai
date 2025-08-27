@@ -71,7 +71,9 @@ export class DocumentService {
 
     editorConfig.editorConfig.plugins = {
       autostart: ['asc.{11700c35-1fdb-4e37-9edb-b31637139601}'],
-      pluginsData: [`http://localhost:3000/static/plugins/ai/config.json`],
+      pluginsData: [
+        `${this.config.get('domain')}/static/plugins/ai/config.json`,
+      ],
     };
 
     if (query.useJwtEncrypt === 'y') {
