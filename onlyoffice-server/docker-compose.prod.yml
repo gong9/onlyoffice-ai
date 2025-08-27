@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  onlyoffice-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: onlyoffice-server-prod
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - API_PREFIX=/api
+      - DOMAIN=${DOMAIN:-http://localhost:3000}
+      - ONLYOFFICE_SECRET=${ONLYOFFICE_SECRET}
+      - ONLYOFFICE_DOMAIN=${ONLYOFFICE_DOMAIN}
+      - ONLYOFFICE_COMMAND_URL=${ONLYOFFICE_COMMAND_URL}
+      - ONLYOFFICE_CALLBACK=${ONLYOFFICE_CALLBACK}
+    volumes:
+      - ./static:/app/static
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - onlyoffice-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  onlyoffice-network:
+    driver: bridge 

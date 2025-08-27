@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  onlyoffice-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: onlyoffice-server
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - API_PREFIX=/api
+      - DOMAIN=http://localhost:3000
+      - ONLYOFFICE_SECRET=your_onlyoffice_secret_here
+      - ONLYOFFICE_DOMAIN=http://localhost:80
+      - ONLYOFFICE_COMMAND_URL=http://localhost:3000/api/onlyoffice/command
+      - ONLYOFFICE_CALLBACK=http://localhost:3000/api/onlyoffice/callback
+    volumes:
+      - ./static:/app/static
+    restart: unless-stopped
+    networks:
+      - onlyoffice-network
+
+networks:
+  onlyoffice-network:
+    driver: bridge 

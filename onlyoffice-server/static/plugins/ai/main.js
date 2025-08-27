@@ -23,6 +23,7 @@
               console.log('GetRange方法失败，尝试其他方法');
             }
             console.log('文档文本长度:', fullText.replace(/\r/g, "").length);
+            console.log(fullText.replace(/\r/g, ""));
             return fullText.replace(/\r/g, "");
           } catch (error) {
             console.error('获取文档文本失败:', error);
@@ -463,7 +464,7 @@
                   format.fontFamily = run.GetFontFamily
                     ? run.GetFontFamily()
                     : null;
-                  format.color = run.GetColor ? run.GetColor() : null;
+                  // format.color = run.GetColor ? run.GetColor() : null;
                   format.vertAlign = run.GetVertAlign
                     ? run.GetVertAlign()
                     : null;
