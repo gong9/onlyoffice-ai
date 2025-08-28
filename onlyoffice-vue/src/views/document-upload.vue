@@ -1,19 +1,17 @@
 <template>
   <div class="document-upload-page">
     <div class="page-header">
-      <h1>文档管理</h1>
-      <p>上传和管理您的 Office 文档</p>
+      <h1>文档上传</h1>
+      <p>上传您的 Office 文档并开始编辑</p>
     </div>
 
     <!-- 文件上传区域 -->
     <div class="upload-section">
-      <h3>上传新文档</h3>
       <div class="upload-area" :class="{ 'drag-over': isDragOver }">
         <input
           ref="fileInput"
           type="file"
           accept=".docx,.xlsx,.pptx,.doc,.xls,.ppt,.pdf"
-          multiple
           @change="handleFileSelect"
           style="display: none"
         />
@@ -25,18 +23,19 @@
           @dragleave="handleDragLeave"
           @drop="handleDrop"
         >
-          <div class="upload-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14,2 14,8 20,8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10,9 9,9 8,9"/>
-            </svg>
-          </div>
-          <div class="upload-text">
-            <p><strong>点击上传</strong> 或拖拽文件到此区域</p>
-            <p class="upload-hint">支持 .docx, .xlsx, .pptx, .doc, .xls, .ppt, .pdf 格式，单个文件不超过 50MB</p>
+          <div class="upload-content">
+            <div class="upload-icon">
+              <svg width="32" height="24" viewBox="0 0 32 24" fill="none">
+                <path d="M29.055 14.6413C28.7261 16.692 26.8905 18.2041 24.7346 18.2002C23.9314 18.2002 23.2802 18.827 23.2802 19.6001C23.2802 20.3732 23.9314 21 24.7346 21C28.3201 20.9951 31.3672 18.4766 31.9142 15.066C32.4612 11.6554 30.3449 8.36972 26.9279 7.32439C25.2403 2.9231 20.8822 0 16.008 0C11.1337 0 6.77563 2.9231 5.08799 7.32439C1.66275 8.36286 -0.462096 11.6523 0.0857665 15.0683C0.633629 18.4844 3.69014 21.004 7.2813 21C8.08456 21 8.73574 20.3732 8.73574 19.6001C8.73574 18.827 8.08456 18.2002 7.2813 18.2002C5.13116 18.1951 3.3049 16.6842 2.97684 14.6389C2.64878 12.5936 3.91658 10.6229 5.96502 9.994L7.32348 9.58103L7.81653 8.29312C9.08264 4.99214 12.3514 2.79991 16.0072 2.79991C19.6631 2.79991 22.9318 4.99214 24.1979 8.29312L24.6924 9.58103L26.0509 9.994C28.1076 10.6161 29.3839 12.5906 29.055 14.6413ZM17.4286 23.2906L17.4286 15.4868L19.7143 15.4868C19.8225 15.4868 19.9214 15.426 19.9698 15.3299C20.0182 15.2338 20.0078 15.1187 19.9429 15.0327L16.2286 10.1135C16.1746 10.0421 16.0899 10 16 10C15.9101 10 15.8254 10.0421 15.7714 10.1135L12.0571 15.0327C11.9922 15.1187 11.9818 15.2338 12.0302 15.3299C12.0786 15.426 12.1775 15.4868 12.2857 15.4868L14.5714 15.4868L14.5714 23.2906C14.5714 23.4787 14.6467 23.6592 14.7806 23.7922C14.9146 23.9253 15.0963 24 15.2857 24L16.7143 24C16.9037 24 17.0854 23.9253 17.2194 23.7922C17.3533 23.6592 17.4286 23.4787 17.4286 23.2906Z" fill="#5983FF"/>
+              </svg>
+            </div>
+            <div class="upload-text">
+              <p class="upload-hint">点击或将文件拖拽到这里上传</p>
+            </div>
+            <button class="upload-btn" @click.stop="triggerFileSelect">
+              上传文档
+            </button>
+            <p class="format-hint">支持格式：docx、xlsx、pptx、doc、xls、ppt、pdf，单个文件不能超过50MB</p>
           </div>
         </div>
       </div>
@@ -64,101 +63,11 @@
         </div>
       </div>
     </div>
-
-    <!-- 文档列表 -->
-    <div class="document-list-section">
-      <div class="list-header">
-        <h3>已上传文档</h3>
-        <button class="refresh-btn" @click="refreshDocumentList" :disabled="loading">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="23 4 23 10 17 10"/>
-            <polyline points="1 20 1 14 7 14"/>
-            <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-          </svg>
-          刷新
-        </button>
-      </div>
-
-      <div v-if="loading" class="loading">
-        <div class="spinner"></div>
-        <p>加载中...</p>
-      </div>
-
-      <div v-else-if="documents.length === 0" class="empty-state">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14,2 14,8 20,8"/>
-        </svg>
-        <p>暂无文档</p>
-        <p class="empty-hint">点击上方上传区域开始添加文档</p>
-      </div>
-
-      <div v-else class="document-grid">
-        <div 
-          v-for="doc in documents" 
-          :key="doc.key" 
-          class="document-card"
-          @click="openDocument(doc)"
-        >
-          <div class="doc-icon">
-            <svg v-if="doc.documentType === 'word'" width="32" height="32" viewBox="0 0 24 24" fill="#2B579A">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14,2 14,8 20,8"/>
-              <path d="M10 12h4M10 16h4"/>
-            </svg>
-            <svg v-else-if="doc.documentType === 'cell'" width="32" height="32" viewBox="0 0 24 24" fill="#217346">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14,2 14,8 20,8"/>
-              <rect x="8" y="11" width="8" height="6" fill="none" stroke="white" stroke-width="1"/>
-              <line x1="8" y1="13" x2="16" y2="13" stroke="white" stroke-width="1"/>
-              <line x1="12" y1="11" x2="12" y2="17" stroke="white" stroke-width="1"/>
-            </svg>
-            <svg v-else-if="doc.documentType === 'slide'" width="32" height="32" viewBox="0 0 24 24" fill="#D24726">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14,2 14,8 20,8"/>
-              <rect x="8" y="12" width="8" height="4" fill="white"/>
-            </svg>
-            <svg v-else-if="doc.documentType === 'pdf'" width="32" height="32" viewBox="0 0 24 24" fill="#FF6B6B">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14,2 14,8 20,8"/>
-              <text x="12" y="16" text-anchor="middle" fill="white" font-size="8" font-weight="bold">PDF</text>
-            </svg>
-            <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="#999">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14,2 14,8 20,8"/>
-              <rect x="8" y="12" width="8" height="4" fill="white"/>
-            </svg>
-          </div>
-          <div class="doc-info">
-            <h4 class="doc-name" :title="doc.fileName">{{ doc.fileName }}</h4>
-            <p class="doc-meta">
-              <span>{{ formatFileSize(doc.fileSize) }}</span>
-              <span>{{ formatDate(doc.uploadTime) }}</span>
-            </p>
-          </div>
-          <div class="doc-actions">
-            <button class="action-btn" @click.stop="downloadDocument(doc)" title="下载">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-            </button>
-            <button class="action-btn edit-btn" @click.stop="openDocument(doc)" title="编辑">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script>
-import { uploadDocument, getDocumentList } from '../api/document'
+import { uploadDocument } from '../api/document'
 
 export default {
   name: 'DocumentUpload',
@@ -166,13 +75,8 @@ export default {
     return {
       isDragOver: false,
       uploadingFiles: [],
-      documents: [],
-      loading: false,
       fileIdCounter: 0
     }
-  },
-  mounted() {
-    this.refreshDocumentList()
   },
   methods: {
     triggerFileSelect() {
@@ -213,8 +117,9 @@ export default {
         this.$message.warning('部分文件格式不支持，已跳过')
       }
       
-      for (const file of validFiles) {
-        await this.uploadSingleFile(file)
+      // 只处理第一个文件，上传成功后直接跳转
+      if (validFiles.length > 0) {
+        await this.uploadSingleFile(validFiles[0])
       }
     },
     
@@ -239,11 +144,14 @@ export default {
         if (response.data.code === 200) {
           fileItem.status = 'success'
           fileItem.progress = 100
-          this.$message.success(`${file.name} 上传成功`)
-          // 上传成功后刷新文档列表
+          this.$message.success(`${file.name} 上传成功，正在跳转到编辑页面...`)
+          
+          // 上传成功后直接跳转到编辑页面
           setTimeout(() => {
-            this.refreshDocumentList()
-          }, 1000)
+            const key = response.data.data.key || response.data.data.fileName
+            const editorUrl = `/onlyoffice?key=${key}&useJwtEncrypt=y`
+            window.location.href = editorUrl
+          }, 1500) // 延迟1.5秒让用户看到成功消息
         } else {
           throw new Error(response.data.message)
         }
@@ -261,53 +169,12 @@ export default {
       }, 3000)
     },
     
-    async refreshDocumentList() {
-      this.loading = true
-      try {
-        const response = await getDocumentList()
-        if (response.data.code === 200) {
-          this.documents = response.data.data.files || []
-        } else {
-          this.$message.error('获取文档列表失败')
-        }
-      } catch (error) {
-        this.$message.error('获取文档列表失败: ' + (error.response?.data?.message || error.message))
-      } finally {
-        this.loading = false
-      }
-    },
-    
-    openDocument(doc) {
-      // 跳转到文档编辑页面，使用JWT加密
-      const editorUrl = `/onlyoffice?key=${doc.key}&useJwtEncrypt=y`
-      window.open(editorUrl, '_blank')
-    },
-    
-    downloadDocument(doc) {
-      // 下载文档
-      const link = document.createElement('a')
-      link.href = doc.url
-      link.download = doc.fileName
-      link.click()
-    },
-    
     formatFileSize(bytes) {
       if (bytes === 0) return '0 B'
       const k = 1024
       const sizes = ['B', 'KB', 'MB', 'GB']
       const i = Math.floor(Math.log(bytes) / Math.log(k))
       return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
-    },
-    
-    formatDate(dateString) {
-      const date = new Date(dateString)
-      return date.toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
     }
   }
 }
@@ -320,10 +187,10 @@ export default {
   margin: 0;
   padding: 24px;
   background: #f5f5f5;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  align-items: center;
 }
 
 /* 在大屏幕上保留适当的边距 */
@@ -336,26 +203,29 @@ export default {
 
 .page-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 48px;
 }
 
 .page-header h1 {
   font-size: 28px;
-  color: #333;
+  color: #101219;
   margin-bottom: 8px;
+  font-weight: 600;
 }
 
 .page-header p {
-  color: #666;
+  color: #686F82;
   font-size: 16px;
 }
 
 .upload-section {
   background: white;
-  border-radius: 8px;
-  padding: 24px;
-  margin-bottom: 24px;
+  border-radius: 10px;
+  padding: 40px;
+  margin-bottom: 40px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 800px;
 }
 
 .upload-section h3 {
@@ -364,40 +234,78 @@ export default {
 }
 
 .upload-area {
-  border: 2px dashed #d9d9d9;
+  border: 1px dashed rgba(89, 131, 255, 0.75);
   border-radius: 8px;
   transition: all 0.3s;
+  background: white;
 }
 
 .upload-area.drag-over {
-  border-color: #1890ff;
-  background-color: #f0f9ff;
+  border-color: #5983FF;
+  background-color: rgba(89, 131, 255, 0.05);
 }
 
 .drop-zone {
-  padding: 48px 24px;
+  padding: 48px 80px;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .drop-zone:hover {
-  background-color: #fafafa;
+  background-color: rgba(89, 131, 255, 0.02);
+}
+
+.upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
 }
 
 .upload-icon {
-  color: #8c8c8c;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
-.upload-text p {
-  margin: 8px 0;
-  color: #666;
+.upload-text {
+  margin-bottom: 20px;
 }
 
-.upload-text .upload-hint {
+.upload-hint {
   font-size: 14px;
-  color: #999;
+  color: #686F82;
+  margin: 0;
+  font-family: "Source Han Sans", "PingFang SC", sans-serif;
+}
+
+.upload-btn {
+  background: #5983FF;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 21px;
+  height: 40px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.3s;
+  font-family: "PingFangSC", "PingFang SC", sans-serif;
+}
+
+.upload-btn:hover {
+  background: #4A6FE6;
+}
+
+.format-hint {
+  font-size: 14px;
+  color: #979DAD;
+  margin: 0;
+  font-family: "Source Han Sans", "PingFang SC", sans-serif;
 }
 
 .upload-progress {
@@ -409,7 +317,8 @@ export default {
 
 .upload-progress h4 {
   margin-bottom: 12px;
-  color: #333;
+  color: #101219;
+  font-weight: 600;
 }
 
 .progress-item {
@@ -425,12 +334,12 @@ export default {
 
 .file-name {
   font-weight: 500;
-  color: #333;
+  color: #101219;
 }
 
 .file-size {
   font-size: 12px;
-  color: #999;
+  color: #979DAD;
   margin-left: 8px;
 }
 
@@ -444,7 +353,7 @@ export default {
 
 .progress-fill {
   height: 100%;
-  background: #1890ff;
+  background: #5983FF;
   transition: width 0.3s;
 }
 
@@ -460,216 +369,39 @@ export default {
   min-width: 80px;
   text-align: right;
   font-size: 12px;
-  color: #666;
+  color: #686F82;
 }
 
-.document-list-section {
-  background: white;
-  border-radius: 8px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
 
-.list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
 
-.list-header h3 {
-  color: #333;
-  margin: 0;
-}
-
-.refresh-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: #1890ff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background 0.3s;
-}
-
-.refresh-btn:hover:not(:disabled) {
-  background: #40a9ff;
-}
-
-.refresh-btn:disabled {
-  background: #d9d9d9;
-  cursor: not-allowed;
-}
-
-.loading {
-  text-align: center;
-  padding: 48px;
-  color: #666;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #f0f0f0;
-  border-top: 3px solid #1890ff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 16px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.empty-state {
-  text-align: center;
-  padding: 48px;
-  color: #999;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-.empty-state svg {
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.empty-hint {
-  font-size: 14px;
-  margin-top: 8px;
-}
-
-.document-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
-  overflow-y: auto;
-  flex: 1;
-  padding: 0 4px; /* 为滚动条留出空间 */
-}
-
-/* 针对不同屏幕尺寸优化网格布局 */
-@media (min-width: 768px) {
-  .document-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .document-upload-page {
+    padding: 16px;
+  }
+  
+  .upload-section {
+    padding: 24px;
+  }
+  
+  .drop-zone {
+    padding: 32px 24px;
+    min-height: 250px;
+  }
+  
+  .upload-content {
+    gap: 16px;
   }
 }
 
-@media (min-width: 1200px) {
-  .document-grid {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+@media (max-width: 480px) {
+  .drop-zone {
+    padding: 24px 16px;
+    min-height: 200px;
   }
-}
-
-@media (min-width: 1600px) {
-  .document-grid {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  
+  .upload-section {
+    padding: 20px;
   }
-}
-
-.document-card {
-  border: 1px solid #f0f0f0;
-  border-radius: 8px;
-  padding: 16px;
-  cursor: pointer;
-  transition: all 0.3s;
-  background: white;
-}
-
-.document-card:hover {
-  border-color: #1890ff;
-  box-shadow: 0 4px 12px rgba(24,144,255,0.15);
-}
-
-.doc-icon {
-  margin-bottom: 12px;
-}
-
-.doc-info {
-  margin-bottom: 12px;
-}
-
-.doc-name {
-  font-size: 16px;
-  font-weight: 500;
-  color: #333;
-  margin: 0 0 8px 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.doc-meta {
-  font-size: 12px;
-  color: #999;
-  margin: 0;
-  display: flex;
-  justify-content: space-between;
-}
-
-.doc-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  padding: 8px;
-  border: 1px solid #d9d9d9;
-  background: white;
-  border-radius: 4px;
-  cursor: pointer;
-  color: #666;
-  transition: all 0.3s;
-}
-
-.action-btn:hover {
-  border-color: #1890ff;
-  color: #1890ff;
-}
-
-.edit-btn:hover {
-  background: #1890ff;
-  color: white;
-}
-
-/* 自定义滚动条样式 */
-.document-grid::-webkit-scrollbar {
-  width: 8px;
-}
-
-.document-grid::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-.document-grid::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
-}
-
-.document-grid::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-/* 为 Firefox 添加滚动条样式 */
-.document-grid {
-  scrollbar-width: thin;
-  scrollbar-color: #c1c1c1 #f1f1f1;
 }
 </style> 
