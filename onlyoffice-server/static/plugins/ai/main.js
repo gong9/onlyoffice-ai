@@ -10,6 +10,80 @@
     function getDocumentText(callback) {
       me.callCommand(
         function () {
+
+          function showEditorLoading() {
+            const container = parent.parent.parent.window.parent.window.parent.window[0].document
+            let loader = container.getElementById('editorLoader');
+            if (!loader) {
+              loader = container.createElement('div');
+              loader.id = 'editorLoader';
+              
+              // 创建简单的loading内容
+              loader.innerHTML = `
+                <div style="
+                  position: fixed;
+                  top: 0;
+                  left: 0;
+                  width: 100vw;
+                  height: 100vh;
+                  background: rgba(0,0,0,0.3);
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  z-index: 999999;
+                  font-family: Arial, sans-serif;
+                  transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+                  opacity: 1;
+                  visibility: visible;
+                ">
+                  <div style="
+                    text-align: center;
+                    color: #333;
+                    padding: 40px;
+                    background: rgba(255,255,255,0.95);
+                    border-radius: 15px;
+                    border: 1px solid rgba(0,0,0,0.1);
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                    transition: transform 0.5s ease-out;
+                    transform: scale(1);
+                  ">
+                    <div style="
+                      width: 60px;
+                      height: 60px;
+                      border: 4px solid rgba(74,111,230,0.3);
+                      border-top: 4px solid #4A6FE6;
+                      border-radius: 50%;
+                      margin: 0 auto 20px;
+                      animation: spin 1s linear infinite;
+                    "></div>
+                    <h3 style="margin: 0 0 15px 0; font-size: 20px; color: #333;">AI智能校对中...</h3>
+                    <p style="margin: 0; font-size: 14px; color: #666;">正在对文档进行智能审查，请稍候</p>
+                  </div>
+                </div>
+              `;
+              
+              // 添加简单的CSS动画
+              const style = container.createElement('style');
+              style.textContent = `
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              `;
+              
+              container.head.appendChild(style);
+              container.body.appendChild(loader);
+            } else {
+              // 如果元素已存在，重置其状态
+              loader.style.opacity = '1';
+              loader.style.visibility = 'visible';
+              loader.style.display = 'flex';
+            }
+            loader.style.display = 'flex';
+          }
+
+        showEditorLoading()
+
           try {
             var doc = Api.GetDocument();
             var fullText = '';
@@ -24,6 +98,8 @@
             }
             console.log('文档文本长度:', fullText.replace(/\r/g, "").length);
             console.log(fullText.replace(/\r/g, ""));
+            
+            
             return fullText.replace(/\r/g, "");
           } catch (error) {
             console.error('获取文档文本失败:', error);
@@ -37,6 +113,8 @@
         },
       );
     }
+
+
 
     // 清除所有批注
     function clearAllComments(callback) {
@@ -380,7 +458,23 @@
                   processRun(operations);
                 });
 
+                 function hideEditorLoading() {
+                    const container = parent.parent.parent.window.parent.window.parent.window[0].document;
+                    const loader = container.getElementById('editorLoader');
+                    if (loader) {
+                      // 开始淡出动画
+                      loader.style.opacity = '0';
+                      loader.style.visibility = 'hidden';
+                      
+                      // 不设置display:none，保持元素在DOM中
+                      // 这样下次showEditorLoading时就能直接使用
+                    }
+                  }
+
+                hideEditorLoading()
                 return processedCount;
+
+         
               }
 
               /**
@@ -763,6 +857,7 @@
         if (documentText) {
           callCheckAPI(documentText, function (error, response) {
             if (error) {
+              console.error('API校对失败:', error);
               alert('API校对失败: ' + error);
             } else {
               console.log('API校对结果:', response);
@@ -785,7 +880,7 @@
                     addCommentToDocument(range)
 
                     // 调用添加
-                    alert('API校对和SSE请求都已完成，请查看控制台日志获取详细结果');
+                    // alert('API校对和SSE请求都已完成，请查看控制台日志获取详细结果');
                   }
                 }
               });
