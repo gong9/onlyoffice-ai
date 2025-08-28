@@ -76,14 +76,14 @@
     function callCheckAPI(documentText, callback) {
       var xhr = new XMLHttpRequest();
       var url =
-        'http://211.90.218.31:10000/zodiac-ym9aZ/prod-api/hzm/common_check/check';
+        'http://211.90.218.31:10000/zodiac-ym9aZ/prod-api/hzm/audit/check';
 
       xhr.open('POST', url, true);
       xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
       xhr.setRequestHeader('Accept-Language', 'zh-CN,zh;q=0.9');
       xhr.setRequestHeader(
         'Authorization',
-        'Bearer eyJhbGciOiJIUzUxMiJ9.eyJsb2dpbl91c2VyX2tleSI6ImQzN2I1Mzg3LWRiYzctNDc2Yi04MmYwLTFhNDllYjhjZTc5ZCJ9.RORlkskPERXvlZAV_4OmWbYupq87QSB4__WLoEbIuxi59H1AFcWQhQOIfDE7522KlrDD1TWouUakDyBbmprZrg',
+        'Bearer eyJhbGciOiJIUzUxMiJ9.eyJsb2dpbl91c2VyX2tleSI6IjE0NTRlODM5LTkwNjktNDBlNS04OTViLWYzODNlNGE5NTc5MCJ9.4Hx5e4mPHHT-2pvk_MpViEPymlWli-H1uQjg2uIFRabTNH1lzvN32rz4K5Af4x2VVUTeOjumWraATvy7pwt9kA',
       );
       xhr.setRequestHeader('Cache-Control', 'no-cache');
       xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
@@ -94,6 +94,7 @@
           if (xhr.status === 200) {
             try {
               var response = JSON.parse(xhr.responseText);
+
               if (callback) callback(null, response);
             } catch (e) {
               if (callback) callback('解析响应数据失败: ' + e.message, null);
@@ -110,11 +111,8 @@
 
       // 发送文档文本数据
       var requestData = {
-        doc_parsing_content: documentText,
-        edit_html_content: '',
-        html: '',
-        checkFunctions: 719,
-        checkMode: 2,
+        editText: documentText,
+        tid: '20250827194717_c23fc8c35e5249b9ae34c2769ebbff0f',
       };
 
       try {
@@ -124,21 +122,132 @@
       }
     }
 
-    function addCommentToDocument() {
+    // SSE请求方法
+    function callSSEAPI(tid, callback) {
+      var url = 'http://211.90.218.31:10000/zodiac-ym9aZ/prod-api/hzm/sse/audit/result';
+      
+      var lastData = null;
+      
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Accept': 'text/event-stream',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJsb2dpbl91c2VyX2tleSI6IjE0NTRlODM5LTkwNjktNDBlNS04OTViLWYzODNlNGE5NTc5MCJ9.4Hx5e4mPHHT-2pvk_MpViEPymlWli-H1uQjg2uIFRabTNH1lzvN32rz4K5Af4x2VVUTeOjumWraATvy7pwt9kA'
+        },
+        body: JSON.stringify({ tid: tid })
+      })
+      .then(function(response) {
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status);
+        }
+        
+        var reader = response.body.getReader();
+        var decoder = new TextDecoder();
+        var buffer = '';
+        
+        async function readStream() {
+          while (true) {
+            const result = await reader.read();
+            if (result.done) {
+              console.log('SSE流结束，最后数据:', lastData);
+              if (callback) {
+                callback(null, lastData ? [lastData] : []);
+              }
+              break;
+            }
+
+            const chunk = decoder.decode(result.value, { stream: true });
+            buffer += chunk;
+            console.log('收到数据块:', chunk);
+            console.log('当前buffer:', buffer);
+
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            let eventBuffer = [];
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i].trim();
+
+              if (line === '') {
+                if (eventBuffer.length > 0) {
+                  const dataStr = eventBuffer.join('');
+                  eventBuffer = [];
+
+                  if (dataStr === '[DONE]') {
+                    if (callback) {
+                      callback(null, lastData ? [lastData] : []);
+                    }
+                    return;
+                  }
+
+                  try {
+                    const data = JSON.parse(dataStr);
+                    lastData = data;
+                    if (callback) {
+                      callback(null, data, true);
+                    }
+                  } catch (e) {
+                    console.error('解析失败:', e, '原始数据:', dataStr);
+                  }
+                }
+              } else if (line.startsWith('data:')) {
+                eventBuffer.push(line.substring(5).trim());
+              } else if (line.startsWith('{') && line.endsWith('}')) {
+                try {
+                  const data = JSON.parse(line);
+                  lastData = data;
+                  if (callback) {
+                    callback(null, data, true);
+                  }
+                } catch (e) {
+                  console.error('直接解析JSON失败:', e, '原始数据:', line);
+                }
+              }
+            }
+          }
+        }
+        
+        return readStream();
+      })
+      .catch(function(error) {
+        console.error('SSE请求失败:', error);
+        if (callback) {
+          callback('SSE请求失败: ' + error.message, null);
+        }
+      });
+      
+      // 返回关闭函数
+      return {
+        close: function() {
+          if (callback) {
+            callback(null, lastData ? [lastData] : []);
+          }
+        }
+      };
+    }
+
+    function addCommentToDocument(range) {
+      
+      const result = Array.isArray(range)
+        ? range.map((item, index) => ({
+            startIndex: item.globalOffset[0],
+            endIndex: item.globalOffset[1],
+            comment: item.category.level3,
+            author: "AI批注",
+            id: index + 1,
+            desc:(item.suggestionList||[])[0]?.desc1||''
+          }))
+        : [];
+
+      Asc.scope.targetRanges = result;
+
       clearAllComments(function () {
         me.callCommand(
           function () {
+
             var addedCount = 0;
-            var targetRanges = [
-              
-              {
-                startIndex: 0,
-                endIndex: 10,
-                comment: '各部门，市纪委，杭州警',
-                author: 'AI批注',
-                id: 2,
-              },
-            ];
+            var targetRanges = Asc.scope.targetRanges
 
             try {
               var doc = Api.GetDocument();
@@ -146,6 +255,37 @@
               var sortedRanges = targetRanges.slice().sort(function (a, b) {
                 return a.startIndex - b.startIndex;
               });
+
+              // 过滤重叠区间
+              function filterOverlappingRanges(ranges) {
+                if (!ranges || ranges.length <= 1) {
+                  return ranges;
+                }
+
+                var filteredRanges = [];
+                var currentRange = ranges[0];
+
+                for (var i = 1; i < ranges.length; i++) {
+                  var nextRange = ranges[i];
+                  
+                  if (currentRange.endIndex >= nextRange.startIndex) {
+                    if (currentRange.endIndex - currentRange.startIndex >= nextRange.endIndex - nextRange.startIndex) {
+                      continue;
+                    } else {
+                      currentRange = nextRange;
+                    }
+                  } else {
+                    filteredRanges.push(currentRange);
+                    currentRange = nextRange;
+                  }
+                }
+                filteredRanges.push(currentRange);
+                
+                return filteredRanges;
+              }
+
+          
+              sortedRanges = filterOverlappingRanges(sortedRanges);
 
               function addCommentByCharacterIndexBatch() {
                 var doc = Api.GetDocument();
@@ -300,8 +440,7 @@
                 // 如果批注覆盖整个run，直接添加批注
                 if (startInRun === 0 && endInRun === text.length) {
                   run.AddComment(
-                    operation.comment +
-                      `[${operation.originalRange.startIndex}-${operation.originalRange.endIndex}]`,
+                      `${operation.originalRange.desc}`,
                     operation.author,
                   );
                   return;
@@ -340,8 +479,7 @@
                 }
 
                 commentRun.AddComment(
-                  operation.comment +
-                    `[${operation.originalRange.startIndex}-${operation.originalRange.endIndex}]`,
+                  `${operation.originalRange.desc}`,
                   operation.author,
                 );
               }
@@ -417,8 +555,7 @@
                 }
 
                 commentRun.AddComment(
-                  firstOp.comment +
-                    `[${firstOp.originalRange.startIndex}-${firstOp.originalRange.endIndex}]`,
+                  `${firstOp.originalRange.desc}`,
                   firstOp.author,
                 );
               }
@@ -549,36 +686,36 @@
             id: 'proofread_tab',
             text: '智能校对',
             items: [
-              {
-                id: 'addComment',
-                type: 'button',
-                text: 'AI校对',
-                hint: '对文档进行AI智能校对并添加批注',
-                icons: 'icon.png',
-                lockInViewMode: true,
-                enableToggle: false,
-                separator: false,
-              },
-              {
-                id: 'getDocumentText',
-                type: 'button',
-                text: '获取文档文本',
-                hint: '获取整个文档的文本内容',
-                icons: 'icon.png',
-                lockInViewMode: true,
-                enableToggle: false,
-                separator: false,
-              },
-              {
-                id: 'clearAllComments',
-                type: 'button',
-                text: '清除所有批注',
-                hint: '清除文档中的所有批注',
-                icons: 'icon.png',
-                lockInViewMode: true,
-                enableToggle: false,
-                separator: false,
-              },
+              // {
+              //   id: 'addComment',
+              //   type: 'button',
+              //   text: 'AI校对',
+              //   hint: '对文档进行AI智能校对并添加批注',
+              //   icons: 'icon.png',
+              //   lockInViewMode: true,
+              //   enableToggle: false,
+              //   separator: false,
+              // },
+              // {
+              //   id: 'getDocumentText',
+              //   type: 'button',
+              //   text: '获取文档文本',
+              //   hint: '获取整个文档的文本内容',
+              //   icons: 'icon.png',
+              //   lockInViewMode: true,
+              //   enableToggle: false,
+              //   separator: false,
+              // },
+              // {
+              //   id: 'clearAllComments',
+              //   type: 'button',
+              //   text: '清除所有批注',
+              //   hint: '清除文档中的所有批注',
+              //   icons: 'icon.png',
+              //   lockInViewMode: true,
+              //   enableToggle: false,
+              //   separator: false,
+              // },
               {
                 id: 'checkDocument',
                 type: 'button',
@@ -624,12 +761,34 @@
     this.attachToolbarMenuClickEvent('checkDocument', function (data) {
       getDocumentText(function (documentText) {
         if (documentText) {
-          callCheckAPI(``, function (error, response) {
+          callCheckAPI(documentText, function (error, response) {
             if (error) {
               alert('API校对失败: ' + error);
             } else {
               console.log('API校对结果:', response);
-              alert('API校对完成，请查看控制台日志获取详细结果');
+              
+              var tid = '20250827194717_c23fc8c35e5249b9ae34c2769ebbff0f';
+              var sseConnection = callSSEAPI(tid, function (sseError, sseResponse, isRealtime) {
+                if (sseError) {
+                  console.log('SSE请求失败:', sseError);
+                  if (!isRealtime) {
+                    alert('SSE请求失败: ' + sseError);
+                  }
+                } else {
+                  if (isRealtime) {
+                    console.log('收到实时SSE数据:', sseResponse);
+                  } else {
+
+                    const range = JSON.parse(sseResponse[0].data.result.editing_check_result)
+                  
+
+                    addCommentToDocument(range)
+
+                    // 调用添加
+                    alert('API校对和SSE请求都已完成，请查看控制台日志获取详细结果');
+                  }
+                }
+              });
             }
           });
         } else {
@@ -659,6 +818,7 @@
         0,
         0,
         0,
+        
         0,
         false,
         false,
