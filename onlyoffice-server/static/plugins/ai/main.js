@@ -74,10 +74,26 @@
               container.head.appendChild(style);
               container.body.appendChild(loader);
             } else {
-              // 如果元素已存在，重置其状态
               loader.style.opacity = '1';
               loader.style.visibility = 'visible';
               loader.style.display = 'flex';
+              
+              const titleElement = loader.querySelector('h3');
+              const descElement = loader.querySelector('p');
+              if (titleElement) {
+                titleElement.textContent = 'AI智能校对中...';
+              }
+              if (descElement) {
+                descElement.textContent = '正在对文档进行智能审查，请稍候';
+              }
+              
+              // 重新显示旋转动画
+              const spinner = loader.querySelector('div[style*="border-radius: 50%"]');
+              if (spinner) {
+                spinner.style.display = 'block';
+                spinner.style.animation = 'spin 1s linear infinite';
+                spinner.style.borderTop = '4px solid #4A6FE6';
+              }
             }
             loader.style.display = 'flex';
           }
@@ -161,7 +177,7 @@
       xhr.setRequestHeader('Accept-Language', 'zh-CN,zh;q=0.9');
       xhr.setRequestHeader(
         'Authorization',
-        'Bearer eyJhbGciOiJIUzUxMiJ9.eyJsb2dpbl91c2VyX2tleSI6IjE0NTRlODM5LTkwNjktNDBlNS04OTViLWYzODNlNGE5NTc5MCJ9.4Hx5e4mPHHT-2pvk_MpViEPymlWli-H1uQjg2uIFRabTNH1lzvN32rz4K5Af4x2VVUTeOjumWraATvy7pwt9kA',
+        'Bearer eyJhbGciOiJIUzUxMiJ9.eyJsb2dpbl91c2VyX2tleSI6IjdjYTBjZmFmLTFhNGYtNDYzMi05YzRlLWY2OTY4NjhlZTY1NiJ9.b7hGIrZUdUDICNahr0LOTq2xG9CgKCITJTSZAa4JFicS1EeBd1Q9dt3r71zNj_l1hMShdWHAv_mT1hMZH2xecQ',
       );
       xhr.setRequestHeader('Cache-Control', 'no-cache');
       xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
@@ -211,7 +227,7 @@
         headers: {
           'Accept': 'text/event-stream',
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJsb2dpbl91c2VyX2tleSI6IjE0NTRlODM5LTkwNjktNDBlNS04OTViLWYzODNlNGE5NTc5MCJ9.4Hx5e4mPHHT-2pvk_MpViEPymlWli-H1uQjg2uIFRabTNH1lzvN32rz4K5Af4x2VVUTeOjumWraATvy7pwt9kA'
+          'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJsb2dpbl91c2VyX2tleSI6IjdjYTBjZmFmLTFhNGYtNDYzMi05YzRlLWY2OTY4NjhlZTY1NiJ9.b7hGIrZUdUDICNahr0LOTq2xG9CgKCITJTSZAa4JFicS1EeBd1Q9dt3r71zNj_l1hMShdWHAv_mT1hMZH2xecQ'
         },
         body: JSON.stringify({ tid: tid })
       })
@@ -462,12 +478,25 @@
                     const container = parent.parent.parent.window.parent.window.parent.window[0].document;
                     const loader = container.getElementById('editorLoader');
                     if (loader) {
-                      // 开始淡出动画
-                      loader.style.opacity = '0';
-                      loader.style.visibility = 'hidden';
+                      const titleElement = loader.querySelector('h3');
+                      const descElement = loader.querySelector('p');
+                      if (titleElement) {
+                        titleElement.textContent = '校对完成';
+                      }
+                      if (descElement) {
+                        descElement.textContent = 'AI智能校对已完成，批注已添加到文档中';
+                      }
                       
-                      // 不设置display:none，保持元素在DOM中
-                      // 这样下次showEditorLoading时就能直接使用
+                      // 隐藏旋转动画
+                      const spinner = loader.querySelector('div[style*="border-radius: 50%"]');
+                      if (spinner) {
+                        spinner.style.display = 'none';
+                      }
+                      
+                      setTimeout(function() {
+                        loader.style.opacity = '0';
+                        loader.style.visibility = 'hidden';
+                      }, 2000);
                     }
                   }
 
