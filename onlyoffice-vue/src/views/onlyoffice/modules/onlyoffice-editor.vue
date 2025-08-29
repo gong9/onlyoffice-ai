@@ -56,12 +56,10 @@ export default {
     return {
       // 编辑器配置项，完整配置项参见：https://api.onlyoffice.com/editors/config/
       editorConfig: {
-        // 编辑器宽度
-        width: 1600,
-        // 编辑器高度
-        height: 600,
         // 编辑器类型，支持 word、cell（表格）、slide（PPT）
         documentType: "word",
+        height: 1000,
+        width: "100%",
         // 文档配置
         document: {
           // 权限
@@ -147,3 +145,9 @@ export default {
   },
 };
 </script>
+
+<style>
+iframe {
+  height: 100vh;
+}
+</style>

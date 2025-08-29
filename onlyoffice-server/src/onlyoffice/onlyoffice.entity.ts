@@ -159,7 +159,7 @@ export class OnlyofficeEditorConfig {
    * 编辑器高度
    */
   @IsNumber()
-  height?: number | string = 800;
+  height?: number | string = '100vh';
 
   /**
    * 文档类型。word：文档，cell：表格，slide：PPT

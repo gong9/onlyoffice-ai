@@ -196,7 +196,7 @@ export default {
 /* 在大屏幕上保留适当的边距 */
 @media (min-width: 1600px) {
   .document-upload-page {
-    max-width: 1400px;
+    /* max-width: 1400px; */
     margin: 0 auto;
   }
 }

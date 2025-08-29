@@ -177,7 +177,7 @@
       xhr.setRequestHeader('Accept-Language', 'zh-CN,zh;q=0.9');
       xhr.setRequestHeader(
         'Authorization',
-        'Bearer eyJhbGciOiJIUzUxMiJ9.eyJsb2dpbl91c2VyX2tleSI6IjdjYTBjZmFmLTFhNGYtNDYzMi05YzRlLWY2OTY4NjhlZTY1NiJ9.b7hGIrZUdUDICNahr0LOTq2xG9CgKCITJTSZAa4JFicS1EeBd1Q9dt3r71zNj_l1hMShdWHAv_mT1hMZH2xecQ',
+        'Bearer eyJhbGciOiJIUzUxMiJ9.eyJsb2dpbl91c2VyX2tleSI6ImY1NThjNDRkLWMzMjItNDQ5YS1hNDA5LWYxMjYxOTMyMTc5NyJ9.QKnOOSvPI2LDfiMlQJJgzAHEXsZLxI_x3OsTX7b1aFGXvophMqT5qE0YrMp228O_uTluJs96HLnwjh4Bgko3cQ',
       );
       xhr.setRequestHeader('Cache-Control', 'no-cache');
       xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
@@ -227,7 +227,7 @@
         headers: {
           'Accept': 'text/event-stream',
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJsb2dpbl91c2VyX2tleSI6IjdjYTBjZmFmLTFhNGYtNDYzMi05YzRlLWY2OTY4NjhlZTY1NiJ9.b7hGIrZUdUDICNahr0LOTq2xG9CgKCITJTSZAa4JFicS1EeBd1Q9dt3r71zNj_l1hMShdWHAv_mT1hMZH2xecQ'
+          'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJsb2dpbl91c2VyX2tleSI6ImY1NThjNDRkLWMzMjItNDQ5YS1hNDA5LWYxMjYxOTMyMTc5NyJ9.QKnOOSvPI2LDfiMlQJJgzAHEXsZLxI_x3OsTX7b1aFGXvophMqT5qE0YrMp228O_uTluJs96HLnwjh4Bgko3cQ'
         },
         body: JSON.stringify({ tid: tid })
       })

@@ -99,6 +99,7 @@ export class DocumentService {
     };
     // 修改文档宽度
     editorConfig.width = '100%';
+    editorConfig.height = '100%';
     // 修改编辑器类型
     editorConfig.documentType = 'cell';
     // 添加用户信息
