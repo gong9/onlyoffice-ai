@@ -8,16 +8,16 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 
 # 安装pnpm
-RUN npm install -g pnpm
+# RUN npm install -g pnpm
 
 # 安装依赖
-RUN pnpm install
+RUN npm install --registry=https://registry.npmmirror.com
 
 # 复制源代码
 COPY . .
 
 # 构建应用
-RUN pnpm run build
+RUN npm run build
 
 # 生产阶段
 FROM node:18-alpine AS production
@@ -26,13 +26,13 @@ FROM node:18-alpine AS production
 WORKDIR /app
 
 # 安装pnpm
-RUN npm install -g pnpm
+# RUN npm install -g pnpm
 
 # 复制package.json和pnpm-lock.yaml
 COPY package.json pnpm-lock.yaml ./
 
 # 只安装生产依赖
-RUN pnpm install
+RUN npm install --registry=https://registry.npmmirror.com
 
 # 从构建阶段复制构建后的文件
 COPY --from=builder /app/dist ./dist

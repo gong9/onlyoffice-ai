@@ -30,11 +30,12 @@
                   display: flex;
                   justify-content: center;
                   align-items: center;
-                  z-index: 999999;
+                  z-index: 9999;
                   font-family: Arial, sans-serif;
                   transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
                   opacity: 1;
                   visibility: visible;
+                  pointer-events: auto;
                 ">
                   <div style="
                     text-align: center;
@@ -77,6 +78,7 @@
               loader.style.opacity = '1';
               loader.style.visibility = 'visible';
               loader.style.display = 'flex';
+              loader.style.pointerEvents = 'auto';
               
               const titleElement = loader.querySelector('h3');
               const descElement = loader.querySelector('p');
@@ -177,7 +179,7 @@
       xhr.setRequestHeader('Accept-Language', 'zh-CN,zh;q=0.9');
       xhr.setRequestHeader(
         'Authorization',
-        'Bearer eyJhbGciOiJIUzUxMiJ9.eyJsb2dpbl91c2VyX2tleSI6ImY1NThjNDRkLWMzMjItNDQ5YS1hNDA5LWYxMjYxOTMyMTc5NyJ9.QKnOOSvPI2LDfiMlQJJgzAHEXsZLxI_x3OsTX7b1aFGXvophMqT5qE0YrMp228O_uTluJs96HLnwjh4Bgko3cQ',
+        'Bearer eyJhbGciOiJIUzUxMiJ9.eyJsb2dpbl91c2VyX2tleSI6IjhmOTE0ZWViLTMxYWUtNDY2OS1hMjZjLWE2MDI3MzdkYmU5NiJ9.8OuP_IYVjAW_hAdFPQ4A8nhwyoBICtZQ30AjbmT_FLvQgEdncHKMLMXgtBTtGNNVOA0JjSkRvO3Nxi_UJel4uA',
       );
       xhr.setRequestHeader('Cache-Control', 'no-cache');
       xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
@@ -206,7 +208,7 @@
       // 发送文档文本数据
       var requestData = {
         editText: documentText,
-        tid: '20250827194717_c23fc8c35e5249b9ae34c2769ebbff0f',
+        tid: '20250829170357_2c42d0f2cbf24364875bf791c753700d',
       };
 
       try {
@@ -227,7 +229,7 @@
         headers: {
           'Accept': 'text/event-stream',
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJsb2dpbl91c2VyX2tleSI6ImY1NThjNDRkLWMzMjItNDQ5YS1hNDA5LWYxMjYxOTMyMTc5NyJ9.QKnOOSvPI2LDfiMlQJJgzAHEXsZLxI_x3OsTX7b1aFGXvophMqT5qE0YrMp228O_uTluJs96HLnwjh4Bgko3cQ'
+          'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJsb2dpbl91c2VyX2tleSI6IjhmOTE0ZWViLTMxYWUtNDY2OS1hMjZjLWE2MDI3MzdkYmU5NiJ9.8OuP_IYVjAW_hAdFPQ4A8nhwyoBICtZQ30AjbmT_FLvQgEdncHKMLMXgtBTtGNNVOA0JjSkRvO3Nxi_UJel4uA'
         },
         body: JSON.stringify({ tid: tid })
       })
@@ -496,6 +498,14 @@
                       setTimeout(function() {
                         loader.style.opacity = '0';
                         loader.style.visibility = 'hidden';
+                        loader.style.pointerEvents = 'none';
+                        
+                        // 完全移除DOM元素
+                        setTimeout(function() {
+                          if (loader && loader.parentNode) {
+                            loader.parentNode.removeChild(loader);
+                          }
+                        }, 500);
                       }, 2000);
                     }
                   }
@@ -891,7 +901,7 @@
             } else {
               console.log('API校对结果:', response);
               
-              var tid = '20250827194717_c23fc8c35e5249b9ae34c2769ebbff0f';
+              var tid = '20250829170357_2c42d0f2cbf24364875bf791c753700d';
               var sseConnection = callSSEAPI(tid, function (sseError, sseResponse, isRealtime) {
                 if (sseError) {
                   console.log('SSE请求失败:', sseError);
