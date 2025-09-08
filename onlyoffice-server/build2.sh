@@ -13,8 +13,10 @@ docker save onlyoffice-server:v0.1 > "$FILE_NAME"
 # 上传到远程服务器
 scp "$FILE_NAME" root@211.90.219.252:/home/baohui/onlyoffice-ai-main/onlyoffice-server/
 
-# 在远程服务器加载镜像
-ssh root@211.90.219.252 "docker load < /home/baohui/onlyoffice-ai-main/onlyoffice-server/$FILE_NAME"
-
-# 启动容器
-ssh root@211.90.219.252 "docker-compose -f /home/baohui/onlyoffice-ai-main/onlyoffice-server/docker-compose.yml up -d"
+# 在远程服务器加载镜像并重启容器
+ssh root@211.90.219.252 "
+  cd /home/baohui/onlyoffice-ai-main/onlyoffice-server &&
+  docker load < $FILE_NAME &&
+  docker-compose down -v || true &&
+  docker-compose -f docker-compose.yml up -d
+"

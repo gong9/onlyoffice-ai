@@ -310,7 +310,7 @@
       // 发送文档文本数据
       var requestData = {
         editText: documentText,
-        tid: '20250903155822_53670a4063a145e88e1df5577ae36ac7'
+        tid: '20250908145922_eec9ef6acb16481b85a54fc4315c31df'
       }
 
       try {
@@ -1109,7 +1109,7 @@
             } else {
               console.log('API校对结果:', response)
 
-              var tid = '20250903155822_53670a4063a145e88e1df5577ae36ac7'
+              var tid = '20250908145922_eec9ef6acb16481b85a54fc4315c31df'
               var sseConnection = callSSEAPI(
                 tid,
                 function (sseError, sseResponse, isRealtime) {
