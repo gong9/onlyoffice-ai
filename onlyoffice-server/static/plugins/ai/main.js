@@ -215,10 +215,7 @@
                       console.error('提取单元格文本失败:', contentError)
                     }
 
-                    // 在单元格之间添加分隔符
-                    if (c < cellsCount - 1) {
-                      tableText += '\n'
-                    }
+                    tableText += '\n'
                   }
                 }
               } catch (error) {
@@ -282,7 +279,7 @@
       xhr.open('POST', url, true)
       xhr.setRequestHeader('Accept', 'application/json, text/plain, */*')
       xhr.setRequestHeader('Accept-Language', 'zh-CN,zh;q=0.9')
-      xhr.setRequestHeader('Authorization', 'Bearer ' + window.token)
+      xhr.setRequestHeader('Authorization', 'Bearer ' + window.token.split('\n')[0])
       xhr.setRequestHeader('Cache-Control', 'no-cache')
       xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8')
       xhr.setRequestHeader('Pragma', 'no-cache')
@@ -310,7 +307,7 @@
       // 发送文档文本数据
       var requestData = {
         editText: documentText,
-        tid: '20250908145922_eec9ef6acb16481b85a54fc4315c31df'
+        tid:  window.token.split('\n')[1]
       }
 
       try {
@@ -332,9 +329,9 @@
         headers: {
           Accept: 'text/event-stream',
           'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + window.token
+          Authorization: 'Bearer ' + window.token.split('\n')[0]
         },
-        body: JSON.stringify({ tid: tid })
+        body: JSON.stringify({ tid: window.token.split('\n')[1] })
       })
         .then(function (response) {
           if (!response.ok) {
@@ -1109,7 +1106,7 @@
             } else {
               console.log('API校对结果:', response)
 
-              var tid = '20250908145922_eec9ef6acb16481b85a54fc4315c31df'
+              var tid =''
               var sseConnection = callSSEAPI(
                 tid,
                 function (sseError, sseResponse, isRealtime) {
