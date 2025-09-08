@@ -7,6 +7,10 @@
     // 添加工具栏菜单项
     this.executeMethod('AddToolbarMenuItem', [getToolbarItems()])
 
+    /**
+     * 获取文本
+     * @param callback 
+     */
     function getDocumentText(callback) {
       me.callCommand(
         function () {
@@ -109,25 +113,11 @@
             var doc = Api.GetDocument()
             var fullText = ''
 
-            // try {
-            //   // 首先尝试使用GetRange方法获取整个文档的文本
-            //   var range = doc.GetRange()
-            //   if (range && range.GetText) {
-            //     fullText = range.GetText()
-            //   } else {
-            //     // 如果GetRange方法失败，手动遍历文档元素获取文本
-            //     fullText = extractDocumentText(doc)
-            //   }
-            // } catch (e) {
-            //   console.log('GetRange方法失败，使用手动遍历方法')
-            //   fullText = extractDocumentText(doc)
-            // }
-
             fullText = extractDocumentText(doc)
-            console.log('文档文本长度:', fullText.replace(/\r/g, '').length)
+           
+            console.log('文档文本长度:',fullText.replace(/[\r\n]+/g, '').length)
             console.log(fullText.replace(/\r/g, ''))
 
-            // 手动提取文档文本的函数
             function extractDocumentText(document) {
               var extractedText = ''
               var elementsCount = document.GetElementsCount()
@@ -140,16 +130,14 @@
 
                 try {
                   if (elementType === 'paragraph') {
-                    // 提取段落文本
-                    var paragraphText = element.GetText()
+                    var paragraphText = extractParagraphTextByRuns(element)
                     if (paragraphText) {
                       extractedText += paragraphText
+                      extractedText += '\n'
                     }
                   } else if (elementType === 'table') {
-                    // 提取表格文本
                     extractedText += extractTableText(element)
                   } else {
-                    // 对于其他有文本内容的元素
                     try {
                       if (
                         element.GetText &&
@@ -157,7 +145,8 @@
                       ) {
                         var elementText = element.GetText()
                         if (elementText) {
-                          extractedText += elementText
+                          var visibleText = elementText.replace(/[\r\n]/g, '')
+                          extractedText += visibleText
                         }
                       }
                     } catch (e) {
@@ -170,6 +159,23 @@
               }
 
               return extractedText
+            }
+
+            function extractParagraphTextByRuns(paragraph) {
+              var paragraphText = ''
+              const runsCount = paragraph.GetElementsCount()
+              
+              for (var j = 0; j < runsCount; j++) {
+                const run = paragraph.GetElement(j)
+                if (run && run.GetClassType() === 'run') {
+                  var text = run.GetText()
+                  if (text) {
+                    paragraphText += text
+                  }
+                }
+              }
+              
+              return paragraphText
             }
 
             // 提取表格文本
@@ -198,7 +204,7 @@
                           if (!cellElement) continue
 
                           if (cellElement.GetClassType() === 'paragraph') {
-                            var cellText = cellElement.GetText()
+                            var cellText = extractParagraphTextByRuns(cellElement)
                             if (cellText) {
                               tableText += cellText
                             }
@@ -211,7 +217,7 @@
 
                     // 在单元格之间添加分隔符
                     if (c < cellsCount - 1) {
-                      tableText += '\t'
+                      tableText += '\n'
                     }
                   }
                 }
@@ -242,12 +248,9 @@
         function () {
           try {
             var doc = Api.GetDocument()
-
-            // 获取文档中的所有批注
             var allComments = doc.GetAllComments()
 
             if (allComments && allComments.length > 0) {
-              // 从后往前删除批注，避免索引问题
               for (var i = allComments.length - 1; i >= 0; i--) {
                 var comment = allComments[i]
                 if (comment && comment.Delete) {
@@ -431,7 +434,7 @@
             comment: item.category.level3,
             author: 'AI批注',
             id: index + 1,
-            desc: (item.suggestionList || [])[0]?.desc1 || ''
+            desc:  (item.suggestionList || [])[0]?.desc1 || ''
           }))
         : []
 
@@ -442,7 +445,6 @@
           function () {
             var addedCount = 0
             var targetRanges = Asc.scope.targetRanges
-
             try {
               var doc = Api.GetDocument()
 
@@ -455,7 +457,7 @@
                   return a.startIndex - b.startIndex
                 })
 
-              console.log(sortedRanges, 'sortedRanges', 11111)
+              console.log(sortedRanges, 'sortedRanges')
 
               // 过滤重叠区间
               // TODO 目前存在bug
@@ -504,6 +506,7 @@
                   if (!element) continue
 
                   const elementType = element.GetClassType()
+
                   try {
                     if (elementType === 'paragraph') {
                       globalCharIndex = processParagraphElement(
@@ -536,6 +539,7 @@
                         console.log('无法获取元素文本:', elementType, e)
                       }
                     }
+                    console.log('globalCharIndex', globalCharIndex)
                   } catch (error) {
                     console.error(
                       '元素 ' + i + ' 处理失败:',
@@ -614,9 +618,10 @@
 
                               var cellElementType = cellElement.GetClassType()
                               if (cellElementType === 'paragraph') {
+                                var cellParagraphIndex = -(tableIndex * 10000 + r * 100 + c * 10 + e + 1)
                                 currentGlobalIndex = processParagraphElement(
                                   cellElement,
-                                  -1,
+                                  cellParagraphIndex,
                                   currentGlobalIndex,
                                   overlappingComments
                                 )
@@ -627,10 +632,6 @@
                           console.error('获取单元格内容失败:', contentError)
                         }
                         
-                        // 在单元格之间添加分隔符字符计数（除了最后一个单元格）
-                        if (c < cellsCount - 1) {
-                          currentGlobalIndex += 1 // 制表符 '\t' 占1个字符
-                        }
                       }
                     }
                   } catch (error) {
@@ -1068,7 +1069,7 @@
                 lockInViewMode: true,
                 enableToggle: false,
                 separator: false
-              }
+              },
             ]
           }
         ]
@@ -1132,19 +1133,23 @@
               )
             }
           })
+
+          // addCommentToDocument([
+          //   {
+          //     globalOffset: [295,301],
+          //     category: {
+          //       level3: '111'
+          //     },
+          //     author: 'AI批注',
+          //     desc: 111
+          //   }
+          // ])
         } else {
           alert('获取文档文本失败，无法进行API校对')
         }
       })
     })
 
-    // 添加批注
-    function addCommentAction() {
-      addCommentToDocument()
-    }
-
-    // 开始添加批注
-    $('#addText').click(addCommentAction)
 
     // 插件事件处理
     window.Asc.plugin.onExternalMouseUp = function () {
