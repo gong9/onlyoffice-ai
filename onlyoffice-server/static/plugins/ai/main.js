@@ -271,7 +271,7 @@
     }
 
     // API请求方法
-    function callCheckAPI(documentText, callback) {
+    function callCheckAPI(documentText, callback, tid) {
       var xhr = new XMLHttpRequest()
       var url =
         'http://211.90.219.252:28081/zodiac-ym9aZ/prod-api/hzm/audit/check'
@@ -307,7 +307,7 @@
       // 发送文档文本数据
       var requestData = {
         editText: documentText,
-        tid:  window.token.split('\n')[1]
+        tid,
       }
 
       try {
@@ -331,7 +331,7 @@
           'Content-Type': 'application/json',
           Authorization: 'Bearer ' + window.token.split('\n')[0]
         },
-        body: JSON.stringify({ tid: window.token.split('\n')[1] })
+        body: JSON.stringify({ tid })
       })
         .then(function (response) {
           if (!response.ok) {
@@ -423,8 +423,21 @@
       }
     }
 
-    function addCommentToDocument(range) {
-      const result = Array.isArray(range)
+    function addCommentToDocument(range,type) {
+
+      var result = []
+      if(type===2){
+         result = Array.isArray(range)
+        ? range.map((item, index) => ({
+            startIndex: item.globalOffset[0]+1,
+            endIndex: item.globalOffset[1]+1,
+            author: 'AI批注',
+            id: index + 1,
+            desc:  item.desc
+          }))
+        : []
+      }else{
+          result = Array.isArray(range)
         ? range.map((item, index) => ({
             startIndex: item.globalOffset[0],
             endIndex: item.globalOffset[1],
@@ -434,6 +447,8 @@
             desc:  (item.suggestionList || [])[0]?.desc1 || ''
           }))
         : []
+      }
+     
 
       Asc.scope.targetRanges = result
 
@@ -456,253 +471,18 @@
 
               console.log(sortedRanges, 'sortedRanges')
 
-              // 过滤重叠区间
-              // TODO 目前存在bug
-              function filterOverlappingRanges(ranges) {
-                if (!ranges || ranges.length <= 1) {
-                  return ranges
-                }
 
-                var filteredRanges = []
-                var currentRange = ranges[0]
-
-                for (var i = 1; i < ranges.length; i++) {
-                  var nextRange = ranges[i]
-
-                  if (currentRange.endIndex >= nextRange.startIndex) {
-                    if (
-                      currentRange.endIndex - currentRange.startIndex >=
-                      nextRange.endIndex - nextRange.startIndex
-                    ) {
-                      continue
-                    } else {
-                      currentRange = nextRange
-                    }
-                  } else {
-                    filteredRanges.push(currentRange)
-                    currentRange = nextRange
+              function addCommentByCharacterIndexOneByOne() {
+                var processedCount = 0 
+              
+                for (var rangeIndex = 0; rangeIndex < sortedRanges.length; rangeIndex++) {
+                  var currentRange = sortedRanges[rangeIndex]
+                  
+                  var success = processSingleRange(currentRange)
+                  if (success) {
+                    processedCount++
                   }
                 }
-                filteredRanges.push(currentRange)
-
-                return filteredRanges
-              }
-
-              sortedRanges = filterOverlappingRanges(sortedRanges)
-
-              function addCommentByCharacterIndexBatch() {
-                var doc = Api.GetDocument()
-                var count = doc.GetElementsCount()
-                var globalCharIndex = 0
-                var processedCount = 0
-
-                var overlappingComments = []
-
-                for (var i = 0; i < count; i++) {
-                  const element = doc.GetElement(i)
-                  if (!element) continue
-
-                  const elementType = element.GetClassType()
-
-                  try {
-                    if (elementType === 'paragraph') {
-                      globalCharIndex = processParagraphElement(
-                        element,
-                        i,
-                        globalCharIndex,
-                        overlappingComments
-                      )
-                    } else if (elementType === 'table') {
-                      globalCharIndex = processTableElement(
-                        element,
-                        i,
-                        globalCharIndex,
-                        overlappingComments
-                      )
-                    } else {
-                      try {
-                        if (
-                          element.GetText &&
-                          typeof element.GetText === 'function'
-                        ) {
-                          var elementText = element.GetText()
-                          if (elementText) {
-                            var visibleCharCount =
-                              countVisibleCharacters(elementText)
-                            globalCharIndex += visibleCharCount
-                          }
-                        }
-                      } catch (e) {
-                        console.log('无法获取元素文本:', elementType, e)
-                      }
-                    }
-                    console.log('globalCharIndex', globalCharIndex)
-                  } catch (error) {
-                    console.error(
-                      '元素 ' + i + ' 处理失败:',
-                      error,
-                      '元素类型:',
-                      elementType
-                    )
-                  }
-                }
-
-                function processParagraphElement(
-                  paragraph,
-                  paragraphIndex,
-                  startGlobalIndex,
-                  overlappingComments
-                ) {
-                  var currentGlobalIndex = startGlobalIndex
-                  const runsCount = paragraph.GetElementsCount()
-
-                  for (var j = 0; j < runsCount; j++) {
-                    const run = paragraph.GetElement(j)
-                    if (run && run.GetClassType() === 'run') {
-                      var text = run.GetText()
-                      if (!text) continue
-
-                      var runStartIndex = currentGlobalIndex
-                      var visibleCharCount = countVisibleCharacters(text)
-                      var runEndIndex = currentGlobalIndex + visibleCharCount
-
-                      addCommentToRun(
-                        run,
-                        text,
-                        runStartIndex,
-                        runEndIndex,
-                        j,
-                        paragraph,
-                        paragraphIndex,
-                        overlappingComments
-                      )
-
-                      currentGlobalIndex += visibleCharCount
-                    }
-                  }
-
-                  return currentGlobalIndex
-                }
-
-                function processTableElement(
-                  table,
-                  tableIndex,
-                  startGlobalIndex,
-                  overlappingComments
-                ) {
-                  var currentGlobalIndex = startGlobalIndex
-
-                  try {
-                    var rowsCount = table.GetRowsCount()
-                    for (var r = 0; r < rowsCount; r++) {
-                      var row = table.GetRow(r)
-                      if (!row) continue
-
-                      var cellsCount = row.GetCellsCount()
-
-                      for (var c = 0; c < cellsCount; c++) {
-                        var cell = row.GetCell(c)
-                        if (!cell) continue
-
-                        try {
-                          var cellContent = cell.GetContent()
-                          if (cellContent && cellContent.GetElementsCount) {
-                            var cellElementsCount =
-                              cellContent.GetElementsCount()
-                            for (var e = 0; e < cellElementsCount; e++) {
-                              var cellElement = cellContent.GetElement(e)
-                              if (!cellElement) continue
-
-                              var cellElementType = cellElement.GetClassType()
-                              if (cellElementType === 'paragraph') {
-                                var cellParagraphIndex = -(tableIndex * 10000 + r * 100 + c * 10 + e + 1)
-                                currentGlobalIndex = processParagraphElement(
-                                  cellElement,
-                                  cellParagraphIndex,
-                                  currentGlobalIndex,
-                                  overlappingComments
-                                )
-                              }
-                            }
-                          }
-                        } catch (contentError) {
-                          console.error('获取单元格内容失败:', contentError)
-                        }
-                        
-                      }
-                    }
-                  } catch (error) {
-                    console.error('处理表格失败:', error)
-                  }
-
-                  return currentGlobalIndex
-                }
-
-                function countVisibleCharacters(text) {
-                  var visibleCharCount = 0
-                  for (var k = 0; k < text.length; k++) {
-                    var char = text[k]
-                    // 只跳过回车符和换行符，制表符算作可见字符
-                    if (char === '\n' || char === '\r')
-                      continue
-                    visibleCharCount++
-                  }
-                  return visibleCharCount
-                }
-
-                function addCommentToRun(
-                  run,
-                  text,
-                  runStartIndex,
-                  runEndIndex,
-                  runIndex,
-                  paragraph,
-                  paragraphIndex,
-                  overlappingComments
-                ) {
-                  for (var r = 0; r < sortedRanges.length; r++) {
-                    var range = sortedRanges[r]
-
-                    // 当前run与目标range重叠
-                    if (
-                      runStartIndex < range.endIndex &&
-                      runEndIndex > range.startIndex
-                    ) {
-                      var commentStartInRun = Math.max(
-                        0,
-                        range.startIndex - runStartIndex
-                      )
-
-                      var commentEndInRun = Math.min(
-                        countVisibleCharacters(text),
-                        range.endIndex - runStartIndex
-                      )
-
-                      overlappingComments.push({
-                        startInRun: commentStartInRun,
-                        endInRun: commentEndInRun,
-                        comment: range.comment,
-                        author: range.author,
-                        originalRange: range,
-                        id: range.id,
-                        globalStartIndex: runStartIndex,
-                        run: run,
-                        text: text,
-                        runIndex: runIndex,
-                        paragraph: paragraph,
-                        paragraphIndex: paragraphIndex
-                      })
-                    }
-                  }
-                }
-
-                const runOperationsGroupByIdObject =
-                  mergeRunByCommentId(overlappingComments)
-
-                Object.keys(runOperationsGroupByIdObject).forEach((id) => {
-                  const operations = runOperationsGroupByIdObject[id]
-                  processRun(operations)
-                })
 
                 function hideEditorLoading() {
                   const container =
@@ -745,6 +525,227 @@
 
                 hideEditorLoading()
                 return processedCount
+              }
+
+              // 处理单个range的函数
+              function processSingleRange(targetRange) {
+                var doc = Api.GetDocument()
+                var count = doc.GetElementsCount()
+                var globalCharIndex = 0
+                var overlappingComments = []
+
+                for (var i = 0; i < count; i++) {
+                  const element = doc.GetElement(i)
+                  if (!element) continue
+
+                  const elementType = element.GetClassType()
+
+                  try {
+                    if (elementType === 'paragraph') {
+                      globalCharIndex = processParagraphElement(
+                        element,
+                        i,
+                        globalCharIndex,
+                        overlappingComments,
+                        targetRange
+                      )
+                    } else if (elementType === 'table') {
+                      globalCharIndex = processTableElement(
+                        element,
+                        i,
+                        globalCharIndex,
+                        overlappingComments,
+                        targetRange
+                      )
+                    } else {
+                      try {
+                        if (
+                          element.GetText &&
+                          typeof element.GetText === 'function'
+                        ) {
+                          var elementText = element.GetText()
+                          if (elementText) {
+                            var visibleCharCount =
+                              countVisibleCharacters(elementText)
+                            globalCharIndex += visibleCharCount
+                          }
+                        }
+                      } catch (e) {
+                        console.log('无法获取元素文本:', elementType, e)
+                      }
+                    }
+                  } catch (error) {
+                    console.error(
+                      '元素 ' + i + ' 处理失败:',
+                      error,
+                      '元素类型:',
+                      elementType
+                    )
+                  }
+                }
+                console.log(globalCharIndex, 'globalCharIndex')
+
+                if (overlappingComments.length > 0) {
+                  const runOperationsGroupByIdObject = mergeRunByCommentId(overlappingComments)
+                  Object.keys(runOperationsGroupByIdObject).forEach((id) => {
+                    const operations = runOperationsGroupByIdObject[id]
+                    processRun(operations)
+                  })
+                  return true
+                } else {
+                  console.log('未找到与range重叠的内容:', targetRange)
+                  return false
+                }
+
+                function processParagraphElement(
+                  paragraph,
+                  paragraphIndex,
+                  startGlobalIndex,
+                  overlappingComments,
+                  targetRange
+                ) {
+                  var currentGlobalIndex = startGlobalIndex
+                  const runsCount = paragraph.GetElementsCount()
+
+                  for (var j = 0; j < runsCount; j++) {
+                    const run = paragraph.GetElement(j)
+                    if (run && run.GetClassType() === 'run') {
+                      var text = run.GetText()
+                      if (!text) continue
+
+                      var runStartIndex = currentGlobalIndex
+                      var visibleCharCount = countVisibleCharacters(text)
+                      var runEndIndex = currentGlobalIndex + visibleCharCount
+
+                      addCommentToRun(
+                        run,
+                        text,
+                        runStartIndex,
+                        runEndIndex,
+                        j,
+                        paragraph,
+                        paragraphIndex,
+                        overlappingComments,
+                        targetRange
+                      )
+
+                      currentGlobalIndex += visibleCharCount
+                    }
+                  }
+
+                  return currentGlobalIndex
+                }
+
+                function processTableElement(
+                  table,
+                  tableIndex,
+                  startGlobalIndex,
+                  overlappingComments,
+                  targetRange
+                ) {
+                  var currentGlobalIndex = startGlobalIndex
+
+                  try {
+                    var rowsCount = table.GetRowsCount()
+                    for (var r = 0; r < rowsCount; r++) {
+                      var row = table.GetRow(r)
+                      if (!row) continue
+
+                      var cellsCount = row.GetCellsCount()
+
+                      for (var c = 0; c < cellsCount; c++) {
+                        var cell = row.GetCell(c)
+                        if (!cell) continue
+
+                        try {
+                          var cellContent = cell.GetContent()
+                          if (cellContent && cellContent.GetElementsCount) {
+                            var cellElementsCount =
+                              cellContent.GetElementsCount()
+                            for (var e = 0; e < cellElementsCount; e++) {
+                              var cellElement = cellContent.GetElement(e)
+                              if (!cellElement) continue
+
+                              var cellElementType = cellElement.GetClassType()
+                              if (cellElementType === 'paragraph') {
+                                var cellParagraphIndex = -(tableIndex * 10000 + r * 100 + c * 10 + e + 1)
+                                currentGlobalIndex = processParagraphElement(
+                                  cellElement,
+                                  cellParagraphIndex,
+                                  currentGlobalIndex,
+                                  overlappingComments,
+                                  targetRange
+                                )
+                              }
+                            }
+                          }
+                        } catch (contentError) {
+                          console.error('获取单元格内容失败:', contentError)
+                        }
+                        
+                      }
+                    }
+                  } catch (error) {
+                    console.error('处理表格失败:', error)
+                  }
+
+                  return currentGlobalIndex
+                }
+
+                function countVisibleCharacters(text) {
+                  var visibleCharCount = 0
+                  for (var k = 0; k < text.length; k++) {
+                    var char = text[k]
+                    // 只跳过回车符和换行符，制表符算作可见字符
+                    if (char === '\n' || char === '\r')
+                      continue
+                    visibleCharCount++
+                  }
+                  return visibleCharCount
+                }
+
+                function addCommentToRun(
+                  run,
+                  text,
+                  runStartIndex,
+                  runEndIndex,
+                  runIndex,
+                  paragraph,
+                  paragraphIndex,
+                  overlappingComments,
+                  targetRange
+                ) {
+                  // 当前run与目标range重叠
+                  if (
+                    runStartIndex < targetRange.endIndex &&
+                    runEndIndex > targetRange.startIndex
+                  ) {
+                    var commentStartInRun = Math.max(
+                      0,
+                      targetRange.startIndex - runStartIndex
+                    )
+
+                    var commentEndInRun = Math.min(
+                      countVisibleCharacters(text),
+                      targetRange.endIndex - runStartIndex
+                    )
+
+                    overlappingComments.push({
+                      startInRun: commentStartInRun,
+                      endInRun: commentEndInRun,
+                      comment: targetRange.comment,
+                      author: targetRange.author,
+                      originalRange: targetRange,
+                      id: targetRange.id,
+                      globalStartIndex: runStartIndex,
+                      run: run,
+                      text: text,
+                      runIndex: runIndex,
+                      paragraph: paragraph,
+                      paragraphIndex: paragraphIndex
+                    })
+                  }
+                }
               }
 
               /**
@@ -804,7 +805,7 @@
                 // 如果批注覆盖整个run，直接添加批注
                 if (startInRun === 0 && endInRun === text.length) {
                   run.AddComment(
-                    `${operation.originalRange.desc}`,
+                    `${operation.originalRange.desc||operation.originalRange.comment}`,
                     operation.author
                   )
                   return
@@ -843,7 +844,7 @@
                 }
 
                 commentRun.AddComment(
-                  `${operation.originalRange.desc}`,
+                  `${operation.originalRange.desc||operation.originalRange.comment}`,
                   operation.author
                 )
               }
@@ -916,7 +917,7 @@
                 }
 
                 commentRun.AddComment(
-                  `${firstOp.originalRange.desc}`,
+                  `${firstOp.originalRange.desc|| firstOp.originalRange.comment}`,
                   firstOp.author
                 )
               }
@@ -1023,8 +1024,8 @@
                 }
               }
 
-              // 执行批量批注处理
-              addedCount = addCommentByCharacterIndexBatch()
+              addedCount = addCommentByCharacterIndexOneByOne()
+              console.log('addedCount', addedCount)
             } catch (error) {
               console.error('主要批注添加过程失败:', error)
             }
@@ -1048,20 +1049,40 @@
             text: '智能校对',
             items: [
               {
-                id: 'clearAllComments',
+                id: 'checkDocument',
                 type: 'button',
-                text: '清除批注',
-                hint: '清除文档中的所有批注',
+                text: '内容审核',
+                hint: '使用API接口对文档进行校对',
+                icons: 'icon.png',
+                lockInViewMode: true,
+                enableToggle: true,
+                separator: false
+              },
+              {
+                id: 'checkDocument2',
+                type: 'button',
+                text: '文本一致性审查',
+                hint: '文本一致性审查',
                 icons: 'icon.png',
                 lockInViewMode: true,
                 enableToggle: false,
                 separator: false
               },
+              // {
+              //   id: 'checkDocument3',
+              //   type: 'button',
+              //   text: '格式审查',
+              //   hint: '格式审查',
+              //   icons: 'icon.png',
+              //   lockInViewMode: true,
+              //   enableToggle: false,
+              //   separator: false
+              // },
               {
-                id: 'checkDocument',
+                id: 'clearAllComments',
                 type: 'button',
-                text: '基础校对',
-                hint: '使用API接口对文档进行校对',
+                text: '清除标记',
+                hint: '清除文档中的所有批注',
                 icons: 'icon.png',
                 lockInViewMode: true,
                 enableToggle: false,
@@ -1097,6 +1118,7 @@
     })
 
     this.attachToolbarMenuClickEvent('checkDocument', function (data) {
+       const tid = window.token.split('\n')[1]
       getDocumentText(function (documentText) {
         if (documentText) {
           callCheckAPI(documentText, function (error, response) {
@@ -1105,8 +1127,6 @@
               alert('API校对失败: ' + error)
             } else {
               console.log('API校对结果:', response)
-
-              var tid =''
               var sseConnection = callSSEAPI(
                 tid,
                 function (sseError, sseResponse, isRealtime) {
@@ -1129,7 +1149,7 @@
                 }
               )
             }
-          })
+          },tid)
 
           // addCommentToDocument([
           //   {
@@ -1141,6 +1161,61 @@
           //     desc: 111
           //   }
           // ])
+        } else {
+          alert('获取文档文本失败，无法进行API校对')
+        }
+      })
+    })
+
+    /**
+     * 一致性
+     */
+    this.attachToolbarMenuClickEvent('checkDocument2', function (data) {
+      const tid = window.token.split('\n')[2]
+
+      getDocumentText(function (documentText) {
+        if (documentText) {
+          callCheckAPI(documentText, function (error, response) {
+            if (error) {
+              console.error('API校对失败:', error)
+              alert('API校对失败: ' + error)
+            } else {
+              console.log('API校对结果:', response)
+
+              var sseConnection = callSSEAPI(
+                tid,
+                function (sseError, sseResponse, isRealtime) {
+                  if (sseError) {
+                    console.log('SSE请求失败:', sseError)
+                    if (!isRealtime) {
+                      alert('SSE请求失败: ' + sseError)
+                    }
+                  } else {
+                    if (isRealtime) {
+                      console.log('收到实时SSE数据:', sseResponse)
+                    } else {
+                      const range = []
+                      sseResponse[0].data.result.result.forEach((item) => {
+    if (item.type === 1 || item.type === 2) {
+      item.itemList.forEach((item) => {
+        item.contextList.forEach((context) => {
+          range.push({
+            globalOffset: context.globalOffset,
+            content: context.content,
+            author: 'AI批注',
+            desc: item.recommend,
+          });
+        });
+      });
+    }
+  });
+                      addCommentToDocument(range,type=2)
+                    }
+                  }
+                }
+              )
+            }
+          },tid)
         } else {
           alert('获取文档文本失败，无法进行API校对')
         }
