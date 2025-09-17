@@ -4,9 +4,17 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './shared/interceptors/response.interceptor';
 import { LoggingInterceptor } from './shared/interceptors/logger.interceptor';
+import { WebSocketService } from './websocket/websocket.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  const app = await NestFactory.create(AppModule, {
+    cors: {
+      origin: true,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+    },
+  });
 
   app.setGlobalPrefix(process.env.API_PREFIX);
 
@@ -36,11 +44,25 @@ async function bootstrap() {
       .setVersion('1.0.0')
       .addTag('Onlyoffice')
       .addTag('Document')
+      .addTag('WebSocket')
       .build();
     const document = SwaggerModule.createDocument(app, options);
     SwaggerModule.setup('docs', app, document);
   }
 
+  // 启动 HTTP 服务器
   await app.listen(process.env.PORT);
+
+  // 获取底层 HTTP 服务器实例
+  const httpServer = app.getHttpServer();
+
+  // 获取 WebSocket 服务并初始化
+  const websocketService = app.get(WebSocketService);
+  websocketService.initialize(httpServer, '/ws');
+
+  console.log(`应用已启动在端口 ${process.env.PORT}`);
+  console.log(
+    `WebSocket 服务已启动，连接地址: ws://localhost:${process.env.PORT}/ws`,
+  );
 }
 bootstrap();

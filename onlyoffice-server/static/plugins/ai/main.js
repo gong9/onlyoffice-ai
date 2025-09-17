@@ -1,8 +1,74 @@
 /* eslint-disable */
 
 ;(function (window, undefined) {
+  window.lastConnectId = ''
   window.Asc.plugin.init = function (initData) {
     var me = this
+
+    let ws = null
+
+    function createWebSocketConnection(connectId) {
+      if (ws && ws.readyState !== WebSocket.CLOSED) {
+        ws.close()
+      }
+
+      ws = new WebSocket('ws://211.90.219.252:8081/ws')
+
+      ws.onopen = function () {
+        ws.send(
+          JSON.stringify({
+            type: 'join_room',
+            data: {
+              connectId: connectId,
+              role: 'plugin'
+            }
+          })
+        )
+      }
+
+      ws.onmessage = function (event) {
+        const message = JSON.parse(event.data)
+        console.log('收到消息:', message)
+
+        if (message.type === 'message' && message.data.status === 'paired') {
+          console.log('配对成功')
+        }
+
+        if (message.type === 'private_message') {
+          console.log('收到私信:', message.data.message)
+
+          if (message.data.message === 'content_review') {
+            contentReview()
+          }
+        }
+      }
+
+      ws.onclose = function () {
+        console.log('WebSocket连接已关闭')
+      }
+
+      ws.onerror = function (error) {
+        console.error('WebSocket错误:', error)
+      }
+    }
+
+    window.createWebSocketConnection = createWebSocketConnection
+
+    // 发送私信
+    function sendPrivateMessage(text) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(
+          JSON.stringify({
+            type: 'private_message',
+            data: {
+              message: text
+            }
+          })
+        )
+      } else {
+        console.warn('WebSocket未连接，无法发送消息')
+      }
+    }
 
     // 添加工具栏菜单项
     this.executeMethod('AddToolbarMenuItem', [getToolbarItems()])
@@ -25,57 +91,57 @@
 
               // 创建简单的loading内容
               loader.innerHTML = `
+                  <div style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    background: rgba(0,0,0,0.04);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 9999;
+                    font-family: Arial, sans-serif;
+                    transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+                    opacity: 1;
+                    visibility: visible;
+                    pointer-events: auto;
+                  ">
                     <div style="
-                      position: fixed;
-                      top: 0;
-                      left: 0;
-                      width: 100vw;
-                      height: 100vh;
-                      background: rgba(0,0,0,0.04);
-                      display: flex;
-                      justify-content: center;
-                      align-items: center;
-                      z-index: 9999;
-                      font-family: Arial, sans-serif;
-                      transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
-                      opacity: 1;
-                      visibility: visible;
-                      pointer-events: auto;
+                      text-align: center;
+                      color: #333;
+                      padding: 40px;
+                      background: rgba(255,255,255,0.95);
+                      border-radius: 15px;
+                      border: 1px solid rgba(0,0,0,0.1);
+                      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                      transition: transform 0.5s ease-out;
+                      transform: scale(1);
                     ">
                       <div style="
-                        text-align: center;
-                        color: #333;
-                        padding: 40px;
-                        background: rgba(255,255,255,0.95);
-                        border-radius: 15px;
-                        border: 1px solid rgba(0,0,0,0.1);
-                        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-                        transition: transform 0.5s ease-out;
-                        transform: scale(1);
-                      ">
-                        <div style="
-                          width: 60px;
-                          height: 60px;
-                          border: 4px solid rgba(74,111,230,0.3);
-                          border-top: 4px solid #4A6FE6;
-                          border-radius: 50%;
-                          margin: 0 auto 20px;
-                          animation: spin 1s linear infinite;
-                        "></div>
-                        <h3 style="margin: 0 0 15px 0; font-size: 20px; color: #333;">AI智能校对中...</h3>
-                        <p style="margin: 0; font-size: 14px; color: #666;">正在对文档进行智能审查，请稍候</p>
-                      </div>
+                        width: 60px;
+                        height: 60px;
+                        border: 4px solid rgba(74,111,230,0.3);
+                        border-top: 4px solid #4A6FE6;
+                        border-radius: 50%;
+                        margin: 0 auto 20px;
+                        animation: spin 1s linear infinite;
+                      "></div>
+                      <h3 style="margin: 0 0 15px 0; font-size: 20px; color: #333;">AI智能校对中...</h3>
+                      <p style="margin: 0; font-size: 14px; color: #666;">正在对文档进行智能审查，请稍候</p>
                     </div>
-                  `
+                  </div>
+                `
 
               // 添加简单的CSS动画
               const style = container.createElement('style')
               style.textContent = `
-                    @keyframes spin {
-                      0% { transform: rotate(0deg); }
-                      100% { transform: rotate(360deg); }
-                    }
-                  `
+                  @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                  }
+                `
 
               container.head.appendChild(style)
               container.body.appendChild(loader)
@@ -430,7 +496,7 @@
       }
     }
 
-    function addCommentToDocument(range, type, tempData=[]) {
+    function addCommentToDocument(range, type, tempData = []) {
       var result = []
       if (type === 2) {
         result = Array.isArray(range)
@@ -455,15 +521,14 @@
           : []
       }
 
-
-      if(!tempData.deOffsets){
+      if (!tempData.deOffsets) {
         tempData.deOffsets = []
       }
 
-      if(!tempData.keywordOffsets){
-         tempData.keywordOffsets = []
+      if (!tempData.keywordOffsets) {
+        tempData.keywordOffsets = []
       }
-   
+
       tempData.deOffsets.forEach((item, index) => {
         result.push({
           startIndex: item,
@@ -473,11 +538,8 @@
           id: index + result.length
         })
       })
-      
-      
 
-
-        tempData.keywordOffsets.forEach((item, index) => {
+      tempData.keywordOffsets.forEach((item, index) => {
         result.push({
           startIndex: item,
           endIndex: item + 5,
@@ -486,8 +548,6 @@
           id: index + result.length
         })
       })
-      
-
 
       Asc.scope.targetRanges = result
 
@@ -1172,7 +1232,7 @@
       })
     })
 
-    this.attachToolbarMenuClickEvent('checkDocument', function (data) {
+    function contentReview(data) {
       const tid = window.token.split('\n')[1]
       getDocumentText(function (documentText) {
         if (documentText) {
@@ -1216,35 +1276,35 @@
             documentText,
             function (error, response) {
               if (error) {
-                console.error("API校对失败:", error);
-                alert("API校对失败: " + error);
+                console.error('API校对失败:', error)
+                alert('API校对失败: ' + error)
               } else {
-                console.log("API校对结果:", response);
+                console.log('API校对结果:', response)
                 var sseConnection = callSSEAPI(
                   tid,
                   function (sseError, sseResponse, isRealtime) {
                     if (sseError) {
-                      console.log("SSE请求失败:", sseError);
+                      console.log('SSE请求失败:', sseError)
                       if (!isRealtime) {
-                        alert("SSE请求失败: " + sseError);
+                        alert('SSE请求失败: ' + sseError)
                       }
                     } else {
                       if (isRealtime) {
-                        console.log("收到实时SSE数据:", sseResponse);
+                        console.log('收到实时SSE数据:', sseResponse)
                       } else {
                         const range = JSON.parse(
                           sseResponse[0].data.result.editing_check_result
-                        );
+                        )
 
-                        addCommentToDocument(range,'',tempData);
+                        addCommentToDocument(range, '', tempData)
                       }
                     }
                   }
-                );
+                )
               }
             },
             tid
-          );
+          )
 
           // addCommentToDocument([
           //   {
@@ -1260,7 +1320,9 @@
           alert('获取文档文本失败，无法进行API校对')
         }
       })
-    })
+    }
+
+    this.attachToolbarMenuClickEvent('checkDocument', contentReview)
 
     /**
      * 一致性
@@ -1356,6 +1418,12 @@
 
     if (id) {
       window.token = id.slice(4)
+
+      const connectId = window.token.split('\n')[3]
+      if (connectId && window.lastConnectId !== connectId && window.createWebSocketConnection) {
+        window.lastConnectId = connectId
+        window.createWebSocketConnection(connectId) 
+      }
     }
   })
   window.parent.postMessage({ type: 'REQUEST_HOST_DATA' }, '*')

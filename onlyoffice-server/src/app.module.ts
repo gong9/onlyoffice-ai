@@ -7,6 +7,7 @@ import { SharedModule } from './shared/shared.module';
 import { AppController } from './app.controller';
 import { OnlyofficeModule } from './onlyoffice/onlyoffice.module';
 import { DocumentModule } from './document/document.module';
+import { WebSocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { DocumentModule } from './document/document.module';
     SharedModule,
     OnlyofficeModule,
     DocumentModule,
+    WebSocketModule,
   ],
   controllers: [AppController],
   providers: [],
