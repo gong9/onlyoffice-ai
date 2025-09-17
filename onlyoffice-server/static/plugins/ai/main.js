@@ -9,7 +9,7 @@
 
     /**
      * 获取文本
-     * @param callback 
+     * @param callback
      */
     function getDocumentText(callback) {
       me.callCommand(
@@ -25,57 +25,57 @@
 
               // 创建简单的loading内容
               loader.innerHTML = `
-                  <div style="
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100vw;
-                    height: 100vh;
-                    background: rgba(0,0,0,0.04);
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    z-index: 9999;
-                    font-family: Arial, sans-serif;
-                    transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
-                    opacity: 1;
-                    visibility: visible;
-                    pointer-events: auto;
-                  ">
                     <div style="
-                      text-align: center;
-                      color: #333;
-                      padding: 40px;
-                      background: rgba(255,255,255,0.95);
-                      border-radius: 15px;
-                      border: 1px solid rgba(0,0,0,0.1);
-                      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-                      transition: transform 0.5s ease-out;
-                      transform: scale(1);
+                      position: fixed;
+                      top: 0;
+                      left: 0;
+                      width: 100vw;
+                      height: 100vh;
+                      background: rgba(0,0,0,0.04);
+                      display: flex;
+                      justify-content: center;
+                      align-items: center;
+                      z-index: 9999;
+                      font-family: Arial, sans-serif;
+                      transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+                      opacity: 1;
+                      visibility: visible;
+                      pointer-events: auto;
                     ">
                       <div style="
-                        width: 60px;
-                        height: 60px;
-                        border: 4px solid rgba(74,111,230,0.3);
-                        border-top: 4px solid #4A6FE6;
-                        border-radius: 50%;
-                        margin: 0 auto 20px;
-                        animation: spin 1s linear infinite;
-                      "></div>
-                      <h3 style="margin: 0 0 15px 0; font-size: 20px; color: #333;">AI智能校对中...</h3>
-                      <p style="margin: 0; font-size: 14px; color: #666;">正在对文档进行智能审查，请稍候</p>
+                        text-align: center;
+                        color: #333;
+                        padding: 40px;
+                        background: rgba(255,255,255,0.95);
+                        border-radius: 15px;
+                        border: 1px solid rgba(0,0,0,0.1);
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                        transition: transform 0.5s ease-out;
+                        transform: scale(1);
+                      ">
+                        <div style="
+                          width: 60px;
+                          height: 60px;
+                          border: 4px solid rgba(74,111,230,0.3);
+                          border-top: 4px solid #4A6FE6;
+                          border-radius: 50%;
+                          margin: 0 auto 20px;
+                          animation: spin 1s linear infinite;
+                        "></div>
+                        <h3 style="margin: 0 0 15px 0; font-size: 20px; color: #333;">AI智能校对中...</h3>
+                        <p style="margin: 0; font-size: 14px; color: #666;">正在对文档进行智能审查，请稍候</p>
+                      </div>
                     </div>
-                  </div>
-                `
+                  `
 
               // 添加简单的CSS动画
               const style = container.createElement('style')
               style.textContent = `
-                  @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                  }
-                `
+                    @keyframes spin {
+                      0% { transform: rotate(0deg); }
+                      100% { transform: rotate(360deg); }
+                    }
+                  `
 
               container.head.appendChild(style)
               container.body.appendChild(loader)
@@ -114,8 +114,11 @@
             var fullText = ''
 
             fullText = extractDocumentText(doc)
-           
-            console.log('文档文本长度:',fullText.replace(/[\r\n]+/g, '').length)
+
+            console.log(
+              '文档文本长度:',
+              fullText.replace(/[\r\n]+/g, '').length
+            )
             console.log(fullText.replace(/\r/g, ''))
 
             function extractDocumentText(document) {
@@ -164,7 +167,7 @@
             function extractParagraphTextByRuns(paragraph) {
               var paragraphText = ''
               const runsCount = paragraph.GetElementsCount()
-              
+
               for (var j = 0; j < runsCount; j++) {
                 const run = paragraph.GetElement(j)
                 if (run && run.GetClassType() === 'run') {
@@ -174,7 +177,7 @@
                   }
                 }
               }
-              
+
               return paragraphText
             }
 
@@ -204,7 +207,8 @@
                           if (!cellElement) continue
 
                           if (cellElement.GetClassType() === 'paragraph') {
-                            var cellText = extractParagraphTextByRuns(cellElement)
+                            var cellText =
+                              extractParagraphTextByRuns(cellElement)
                             if (cellText) {
                               tableText += cellText
                             }
@@ -279,7 +283,10 @@
       xhr.open('POST', url, true)
       xhr.setRequestHeader('Accept', 'application/json, text/plain, */*')
       xhr.setRequestHeader('Accept-Language', 'zh-CN,zh;q=0.9')
-      xhr.setRequestHeader('Authorization', 'Bearer ' + window.token.split('\n')[0])
+      xhr.setRequestHeader(
+        'Authorization',
+        'Bearer ' + window.token.split('\n')[0]
+      )
       xhr.setRequestHeader('Cache-Control', 'no-cache')
       xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8')
       xhr.setRequestHeader('Pragma', 'no-cache')
@@ -307,7 +314,7 @@
       // 发送文档文本数据
       var requestData = {
         editText: documentText,
-        tid,
+        tid
       }
 
       try {
@@ -423,32 +430,64 @@
       }
     }
 
-    function addCommentToDocument(range,type) {
-
+    function addCommentToDocument(range, type, tempData=[]) {
       var result = []
-      if(type===2){
-         result = Array.isArray(range)
-        ? range.map((item, index) => ({
-            startIndex: item.globalOffset[0]+1,
-            endIndex: item.globalOffset[1]+1,
-            author: 'AI批注',
-            id: index + 1,
-            desc:  item.desc
-          }))
-        : []
-      }else{
-          result = Array.isArray(range)
-        ? range.map((item, index) => ({
-            startIndex: item.globalOffset[0],
-            endIndex: item.globalOffset[1],
-            comment: item.category.level3,
-            author: 'AI批注',
-            id: index + 1,
-            desc:  (item.suggestionList || [])[0]?.desc1 || ''
-          }))
-        : []
+      if (type === 2) {
+        result = Array.isArray(range)
+          ? range.map((item, index) => ({
+              startIndex: item.globalOffset[0] + 1,
+              endIndex: item.globalOffset[1] + 1,
+              author: 'AI批注',
+              id: index + 1,
+              desc: item.desc
+            }))
+          : []
+      } else {
+        result = Array.isArray(range)
+          ? range.map((item, index) => ({
+              startIndex: item.globalOffset[0],
+              endIndex: item.globalOffset[1],
+              comment: item.category.level3,
+              author: 'AI批注',
+              id: index + 1,
+              desc: (item.suggestionList || [])[0]?.desc1 || ''
+            }))
+          : []
       }
-     
+
+
+      if(!tempData.deOffsets){
+        tempData.deOffsets = []
+      }
+
+      if(!tempData.keywordOffsets){
+         tempData.keywordOffsets = []
+      }
+   
+      tempData.deOffsets.forEach((item, index) => {
+        result.push({
+          startIndex: item,
+          endIndex: item + 1,
+          desc: '的不能在首行',
+          author: 'AI批注',
+          id: index + result.length
+        })
+      })
+      
+      
+
+
+        tempData.keywordOffsets.forEach((item, index) => {
+        result.push({
+          startIndex: item,
+          endIndex: item + 5,
+          desc: '需要替换为浙江省人民政府',
+          author: 'AI批注',
+          id: index + result.length
+        })
+      })
+      
+
 
       Asc.scope.targetRanges = result
 
@@ -471,13 +510,16 @@
 
               console.log(sortedRanges, 'sortedRanges')
 
-
               function addCommentByCharacterIndexOneByOne() {
-                var processedCount = 0 
-              
-                for (var rangeIndex = 0; rangeIndex < sortedRanges.length; rangeIndex++) {
+                var processedCount = 0
+
+                for (
+                  var rangeIndex = 0;
+                  rangeIndex < sortedRanges.length;
+                  rangeIndex++
+                ) {
                   var currentRange = sortedRanges[rangeIndex]
-                  
+
                   var success = processSingleRange(currentRange)
                   if (success) {
                     processedCount++
@@ -586,7 +628,8 @@
                 console.log(globalCharIndex, 'globalCharIndex')
 
                 if (overlappingComments.length > 0) {
-                  const runOperationsGroupByIdObject = mergeRunByCommentId(overlappingComments)
+                  const runOperationsGroupByIdObject =
+                    mergeRunByCommentId(overlappingComments)
                   Object.keys(runOperationsGroupByIdObject).forEach((id) => {
                     const operations = runOperationsGroupByIdObject[id]
                     processRun(operations)
@@ -668,7 +711,13 @@
 
                               var cellElementType = cellElement.GetClassType()
                               if (cellElementType === 'paragraph') {
-                                var cellParagraphIndex = -(tableIndex * 10000 + r * 100 + c * 10 + e + 1)
+                                var cellParagraphIndex = -(
+                                  tableIndex * 10000 +
+                                  r * 100 +
+                                  c * 10 +
+                                  e +
+                                  1
+                                )
                                 currentGlobalIndex = processParagraphElement(
                                   cellElement,
                                   cellParagraphIndex,
@@ -682,7 +731,6 @@
                         } catch (contentError) {
                           console.error('获取单元格内容失败:', contentError)
                         }
-                        
                       }
                     }
                   } catch (error) {
@@ -697,8 +745,7 @@
                   for (var k = 0; k < text.length; k++) {
                     var char = text[k]
                     // 只跳过回车符和换行符，制表符算作可见字符
-                    if (char === '\n' || char === '\r')
-                      continue
+                    if (char === '\n' || char === '\r') continue
                     visibleCharCount++
                   }
                   return visibleCharCount
@@ -805,7 +852,10 @@
                 // 如果批注覆盖整个run，直接添加批注
                 if (startInRun === 0 && endInRun === text.length) {
                   run.AddComment(
-                    `${operation.originalRange.desc||operation.originalRange.comment}`,
+                    `${
+                      operation.originalRange.desc ||
+                      operation.originalRange.comment
+                    }`,
                     operation.author
                   )
                   return
@@ -844,7 +894,10 @@
                 }
 
                 commentRun.AddComment(
-                  `${operation.originalRange.desc||operation.originalRange.comment}`,
+                  `${
+                    operation.originalRange.desc ||
+                    operation.originalRange.comment
+                  }`,
                   operation.author
                 )
               }
@@ -917,7 +970,9 @@
                 }
 
                 commentRun.AddComment(
-                  `${firstOp.originalRange.desc|| firstOp.originalRange.comment}`,
+                  `${
+                    firstOp.originalRange.desc || firstOp.originalRange.comment
+                  }`,
                   firstOp.author
                 )
               }
@@ -1058,16 +1113,16 @@
                 enableToggle: true,
                 separator: false
               },
-              {
-                id: 'checkDocument2',
-                type: 'button',
-                text: '文本一致性审查',
-                hint: '文本一致性审查',
-                icons: 'icon.png',
-                lockInViewMode: true,
-                enableToggle: false,
-                separator: false
-              },
+              // {
+              //   id: 'checkDocument2',
+              //   type: 'button',
+              //   text: '文本一致性审查',
+              //   hint: '文本一致性审查',
+              //   icons: 'icon.png',
+              //   lockInViewMode: true,
+              //   enableToggle: false,
+              //   separator: false
+              // },
               // {
               //   id: 'checkDocument3',
               //   type: 'button',
@@ -1087,7 +1142,7 @@
                 lockInViewMode: true,
                 enableToggle: false,
                 separator: false
-              },
+              }
             ]
           }
         ]
@@ -1118,38 +1173,78 @@
     })
 
     this.attachToolbarMenuClickEvent('checkDocument', function (data) {
-       const tid = window.token.split('\n')[1]
+      const tid = window.token.split('\n')[1]
       getDocumentText(function (documentText) {
         if (documentText) {
-          callCheckAPI(documentText, function (error, response) {
-            if (error) {
-              console.error('API校对失败:', error)
-              alert('API校对失败: ' + error)
-            } else {
-              console.log('API校对结果:', response)
-              var sseConnection = callSSEAPI(
-                tid,
-                function (sseError, sseResponse, isRealtime) {
-                  if (sseError) {
-                    console.log('SSE请求失败:', sseError)
-                    if (!isRealtime) {
-                      alert('SSE请求失败: ' + sseError)
-                    }
-                  } else {
-                    if (isRealtime) {
-                      console.log('收到实时SSE数据:', sseResponse)
-                    } else {
-                      const range = JSON.parse(
-                        sseResponse[0].data.result.editing_check_result
-                      )
+          function findOffsets(text) {
+            const cleanText = text.replace(/[\r\n]/g, '')
+            const result = {
+              keywordOffsets: [],
+              deOffsets: []
+            }
 
-                      addCommentToDocument(range)
+            // 1. 找所有 "浙江省政府"
+            const keyword = '浙江省政府'
+            let idx = cleanText.indexOf(keyword)
+            while (idx !== -1) {
+              result.keywordOffsets.push(idx)
+              idx = cleanText.indexOf(keyword, idx + 1)
+            }
+
+            // 2. 找每一段开头的 "的"
+            const paragraphs = text.split(/\r?\n/)
+            let offset = 0
+            for (const p of paragraphs) {
+              const trimmed = p.trim()
+              if (trimmed.startsWith('的')) {
+                const pos = cleanText.indexOf('的', offset)
+                if (pos !== -1) {
+                  result.deOffsets.push(pos)
+                }
+              }
+              offset += p.replace(/[\r\n]/g, '').length
+            }
+
+            return result
+          }
+
+          // 临时数据
+          const tempData = findOffsets(documentText)
+          // addCommentToDocument([], '', tempData)
+
+          callCheckAPI(
+            documentText,
+            function (error, response) {
+              if (error) {
+                console.error("API校对失败:", error);
+                alert("API校对失败: " + error);
+              } else {
+                console.log("API校对结果:", response);
+                var sseConnection = callSSEAPI(
+                  tid,
+                  function (sseError, sseResponse, isRealtime) {
+                    if (sseError) {
+                      console.log("SSE请求失败:", sseError);
+                      if (!isRealtime) {
+                        alert("SSE请求失败: " + sseError);
+                      }
+                    } else {
+                      if (isRealtime) {
+                        console.log("收到实时SSE数据:", sseResponse);
+                      } else {
+                        const range = JSON.parse(
+                          sseResponse[0].data.result.editing_check_result
+                        );
+
+                        addCommentToDocument(range,'',tempData);
+                      }
                     }
                   }
-                }
-              )
-            }
-          },tid)
+                );
+              }
+            },
+            tid
+          );
 
           // addCommentToDocument([
           //   {
@@ -1175,53 +1270,56 @@
 
       getDocumentText(function (documentText) {
         if (documentText) {
-          callCheckAPI(documentText, function (error, response) {
-            if (error) {
-              console.error('API校对失败:', error)
-              alert('API校对失败: ' + error)
-            } else {
-              console.log('API校对结果:', response)
+          callCheckAPI(
+            documentText,
+            function (error, response) {
+              if (error) {
+                console.error('API校对失败:', error)
+                alert('API校对失败: ' + error)
+              } else {
+                console.log('API校对结果:', response)
 
-              var sseConnection = callSSEAPI(
-                tid,
-                function (sseError, sseResponse, isRealtime) {
-                  if (sseError) {
-                    console.log('SSE请求失败:', sseError)
-                    if (!isRealtime) {
-                      alert('SSE请求失败: ' + sseError)
-                    }
-                  } else {
-                    if (isRealtime) {
-                      console.log('收到实时SSE数据:', sseResponse)
+                var sseConnection = callSSEAPI(
+                  tid,
+                  function (sseError, sseResponse, isRealtime) {
+                    if (sseError) {
+                      console.log('SSE请求失败:', sseError)
+                      if (!isRealtime) {
+                        alert('SSE请求失败: ' + sseError)
+                      }
                     } else {
-                      const range = []
-                      sseResponse[0].data.result.result.forEach((item) => {
-    if (item.type === 1 || item.type === 2) {
-      item.itemList.forEach((item) => {
-        item.contextList.forEach((context) => {
-          range.push({
-            globalOffset: context.globalOffset,
-            content: context.content,
-            author: 'AI批注',
-            desc: item.recommend,
-          });
-        });
-      });
-    }
-  });
-                      addCommentToDocument(range,type=2)
+                      if (isRealtime) {
+                        console.log('收到实时SSE数据:', sseResponse)
+                      } else {
+                        const range = []
+                        sseResponse[0].data.result.result.forEach((item) => {
+                          if (item.type === 1 || item.type === 2) {
+                            item.itemList.forEach((item) => {
+                              item.contextList.forEach((context) => {
+                                range.push({
+                                  globalOffset: context.globalOffset,
+                                  content: context.content,
+                                  author: 'AI批注',
+                                  desc: item.recommend
+                                })
+                              })
+                            })
+                          }
+                        })
+                        addCommentToDocument(range, (type = 2))
+                      }
                     }
                   }
-                }
-              )
-            }
-          },tid)
+                )
+              }
+            },
+            tid
+          )
         } else {
           alert('获取文档文本失败，无法进行API校对')
         }
       })
     })
-
 
     // 插件事件处理
     window.Asc.plugin.onExternalMouseUp = function () {
