@@ -12,7 +12,7 @@
         ws.close()
       }
 
-      ws = new WebSocket('ws://211.90.219.252:8081/ws')
+      ws = new WebSocket('ws://172.20.10.2:3000/ws')
 
       ws.onopen = function () {
         ws.send(
@@ -1297,6 +1297,7 @@
                         )
 
                         addCommentToDocument(range, '', tempData)
+                        sendPrivateMessage('content_review_done')
                       }
                     }
                   }
@@ -1305,17 +1306,6 @@
             },
             tid
           )
-
-          // addCommentToDocument([
-          //   {
-          //     globalOffset: [295,301],
-          //     category: {
-          //       level3: '111'
-          //     },
-          //     author: 'AI批注',
-          //     desc: 111
-          //   }
-          // ])
         } else {
           alert('获取文档文本失败，无法进行API校对')
         }
