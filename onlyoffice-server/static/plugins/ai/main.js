@@ -266,7 +266,7 @@
         ws.close()
       }
 
-      ws = new WebSocket('ws://172.20.10.2:3000/ws')
+      ws = new WebSocket('ws://211.90.219.252:8081/ws')
 
       ws.onopen = function () {
         ws.send(
