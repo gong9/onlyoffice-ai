@@ -21,7 +21,9 @@ export class DocumentService {
   async forceSave(body: DocumentForceSaveDto): Promise<DocumentForceSave> {
     // 1、保存业务数据
     // 2、调用 Onlyoffice 的强制保存，实际业务中可能还有更多的业务操作，可根据实际情况删改
-    const { id: userdata, key, useJwtEncrypt } = body;
+    const { id, key, useJwtEncrypt } = body;
+    // 如果没有传 id，则 userdata 为 null
+    const userdata = id || null;
     const data = await this.onlyofficeService.forceSave({
       key,
       // 将业务参数传给 Onlyoffice 服务，当回调里面存在多个请求时，标识符将有助于区分特定请求
@@ -71,7 +73,7 @@ export class DocumentService {
 
     editorConfig.editorConfig.plugins = {
       autostart: ['asc.{11700c35-1fdb-4e37-9edb-b31637139601}'],
-      pluginsData: [`http://211.90.219.252:8081/static/plugins/ai/config.json`],
+      pluginsData: [`http://172.20.10.2:3000/static/plugins/ai/config.json`],
     };
 
     if (query.useJwtEncrypt === 'y') {

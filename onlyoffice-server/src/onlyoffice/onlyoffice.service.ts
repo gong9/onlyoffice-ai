@@ -89,6 +89,8 @@ export class OnlyofficeService {
       // 文档保存失败
       data.message = '文档保存失败';
     }
+    console.log('data', data);
+    data.code = 0; // todo 暂时屏蔽错误
     return data;
   }
 

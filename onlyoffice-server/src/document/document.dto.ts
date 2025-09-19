@@ -13,8 +13,9 @@ export class DocumentForceSaveDto {
   /**
    * 业务 id
    */
-  @IsNumber()
-  id: string;
+  @IsString()
+  @IsOptional()
+  id?: string;
 
   /**
    * 文档标识符

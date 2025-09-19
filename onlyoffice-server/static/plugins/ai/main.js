@@ -1,7 +1,261 @@
 /* eslint-disable */
 
 ;(function (window, undefined) {
+  // API配置对象，统一管理所有API的URL前缀
+  window.API_CONFIG = {
+    BASE_URL: 'http://211.90.219.252:28081/zodiac-ym9aZ/prod-api',
+    ENDPOINTS: {
+      UPLOAD: '/hzm/audit/upload',
+      SUBMIT: '/hzm/audit/submit',
+      VIEW_SSE: '/hzm/sse/audit/view',
+      CHECK: '/hzm/audit/check',
+      RESULT_SSE: '/hzm/sse/audit/result'
+    }
+  }
+
+  window.getApiUrl = function (endpoint) {
+    return window.API_CONFIG.BASE_URL + window.API_CONFIG.ENDPOINTS[endpoint]
+  }
+
   window.lastConnectId = ''
+
+  async function urlToFile(url, fallbackName = 'file') {
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`下载失败: ${response.statusText}`)
+    }
+
+    let filename = fallbackName
+    const disposition = response.headers.get('content-disposition')
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename\*?=(?:UTF-8'')?([^;]+)/i)
+      if (match) {
+        filename = decodeURIComponent(match[1].replace(/['"]/g, ''))
+      }
+    }
+
+    const blob = await response.blob()
+    const type = blob.type || 'application/octet-stream'
+
+    if (!filename.includes('.')) {
+      const ext = type.includes('msword')
+        ? '.doc'
+        : type.includes('wordprocessingml')
+        ? '.docx'
+        : ''
+      filename += ext
+    }
+
+    return new File([blob], filename, { type })
+  }
+
+  function callUploadAPI(fileData, callback) {
+    var xhr = new XMLHttpRequest()
+    var url = window.getApiUrl('UPLOAD')
+
+    xhr.open('POST', url, true)
+    xhr.setRequestHeader('Accept', 'application/json, text/plain, */*')
+    xhr.setRequestHeader('Accept-Language', 'zh-CN,zh;q=0.9')
+    xhr.setRequestHeader(
+      'Authorization',
+      'Bearer ' + window.token.split('\n')[0]
+    )
+    xhr.setRequestHeader('Cache-Control', 'no-cache')
+    xhr.setRequestHeader('Pragma', 'no-cache')
+
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          try {
+            var response = JSON.parse(xhr.responseText)
+            if (callback) callback(null, response)
+          } catch (e) {
+            if (callback) callback('解析响应数据失败: ' + e.message, null)
+          }
+        } else {
+          if (callback) callback('上传请求失败，状态码: ' + xhr.status, null)
+        }
+      }
+    }
+
+    xhr.onerror = function () {
+      if (callback) callback('网络请求失败', null)
+    }
+
+    var formData = new FormData()
+
+    if (fileData instanceof File) {
+      formData.append('file', fileData)
+    } else if (fileData && fileData.file) {
+      formData.append('file', fileData.file)
+      for (var key in fileData) {
+        if (key !== 'file') {
+          formData.append(key, fileData[key])
+        }
+      }
+    } else {
+      formData.append('file', fileData)
+    }
+
+    try {
+      xhr.send(formData)
+    } catch (e) {
+      if (callback) callback('发送上传请求失败: ' + e.message, null)
+    }
+  }
+
+  function callSubmitAPI(submitData, callback) {
+    var xhr = new XMLHttpRequest()
+    var url = window.getApiUrl('SUBMIT')
+
+    xhr.open('POST', url, true)
+    xhr.setRequestHeader('Accept', 'application/json, text/plain, */*')
+    xhr.setRequestHeader('Accept-Language', 'zh-CN,zh;q=0.9')
+    xhr.setRequestHeader(
+      'Authorization',
+      'Bearer ' + window.token.split('\n')[0]
+    )
+    xhr.setRequestHeader('Cache-Control', 'no-cache')
+    xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8')
+    xhr.setRequestHeader('Pragma', 'no-cache')
+
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          try {
+            var response = JSON.parse(xhr.responseText)
+            if (callback) callback(null, response)
+          } catch (e) {
+            if (callback) callback('解析响应数据失败: ' + e.message, null)
+          }
+        } else {
+          if (callback) callback('提交请求失败，状态码: ' + xhr.status, null)
+        }
+      }
+    }
+
+    xhr.onerror = function () {
+      if (callback) callback('网络请求失败', null)
+    }
+
+    var requestData = {
+      kind: submitData.kind || 'context_relevance',
+      fidList: submitData.fidList || []
+    }
+
+    try {
+      xhr.send(JSON.stringify(requestData))
+    } catch (e) {
+      if (callback) callback('发送提交请求失败: ' + e.message, null)
+    }
+  }
+
+  function callViewAPI(tid, callback) {
+    var url = window.getApiUrl('VIEW_SSE')
+
+    var lastData = null
+
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        Accept: 'text/event-stream',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        Authorization: 'Bearer ' + window.token.split('\n')[0],
+        'Cache-Control': 'no-cache',
+        'Content-Type': 'application/json',
+        Pragma: 'no-cache'
+      },
+      body: JSON.stringify({ tid: tid })
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status)
+        }
+
+        var reader = response.body.getReader()
+        var decoder = new TextDecoder()
+        var buffer = ''
+
+        async function readStream() {
+          while (true) {
+            const result = await reader.read()
+            if (result.done) {
+              console.log('View SSE流结束，最后数据:', lastData)
+              if (callback) {
+                callback(null, lastData ? [lastData] : [])
+              }
+              break
+            }
+
+            const chunk = decoder.decode(result.value, { stream: true })
+            buffer += chunk
+            console.log('View收到数据块:', chunk)
+            console.log('View当前buffer:', buffer)
+
+            const lines = buffer.split('\n')
+            buffer = lines.pop()
+
+            let eventBuffer = []
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i].trim()
+
+              if (line === '') {
+                if (eventBuffer.length > 0) {
+                  const dataStr = eventBuffer.join('')
+                  eventBuffer = []
+
+                  if (dataStr === '[DONE]') {
+                    // if (callback) {
+                    //   callback(null, lastData ? [lastData] : [])
+                    // }
+                    return
+                  }
+
+                  try {
+                    const data = JSON.parse(dataStr)
+                    lastData = data
+                    // if (callback) {
+                    //   callback(null, data, true)
+                    // }
+                  } catch (e) {
+                    console.error('View解析失败:', e, '原始数据:', dataStr)
+                  }
+                }
+              } else if (line.startsWith('data:')) {
+                eventBuffer.push(line.substring(5).trim())
+              } else if (line.startsWith('{') && line.endsWith('}')) {
+                try {
+                  const data = JSON.parse(line)
+                  lastData = data
+                  // if (callback) {
+                  //   callback(null, data, true)
+                  // }
+                } catch (e) {
+                  console.error('View直接解析JSON失败:', e, '原始数据:', line)
+                }
+              }
+            }
+          }
+        }
+
+        return readStream()
+      })
+      .catch(function (error) {
+        console.error('View SSE请求失败:', error)
+        if (callback) {
+          callback('View SSE请求失败: ' + error.message, null)
+        }
+      })
+
+    return {
+      close: function () {
+        if (callback) {
+          callback(null, lastData ? [lastData] : [])
+        }
+      }
+    }
+  }
+
   window.Asc.plugin.init = function (initData) {
     var me = this
 
@@ -35,10 +289,71 @@
         }
 
         if (message.type === 'private_message') {
-          console.log('收到私信:', message.data.message)
+          console.log('收到私信:', message)
 
-          if (message.data.message === 'content_review') {
-            contentReview()
+          if (message.data.base_url) {
+            window.API_CONFIG.BASE_URL = message.data.base_url
+          }
+
+          if (message.data.check_type === 'content_review') {
+            callViewAPI(message.data.tid, (error, response) => {
+              if (error) {
+                console.error('查看失败:', error)
+              } else {
+                contentReview()
+              }
+            })
+          }
+          if (message.data.file_key) {
+            urlToFile(
+              'http://127.0.0.1:3000/static/' + message.data.file_key
+            ).then((file) => {
+              callUploadAPI(file, (error, response) => {
+                if (error) {
+                  console.error('上传失败:', error)
+                } else {
+                  callSubmitAPI(
+                    {
+                      fidList: [
+                        {
+                          fid: response.data.fid,
+                          kind: 'file'
+                        }
+                      ],
+                      kind: 'context_relevance'
+                    },
+                    (error, response) => {
+                      if (error) {
+                        console.error('提交失败:', error)
+                      } else {
+                        const tid = response.data.tid
+                        callViewAPI(tid, (error, response) => {
+                          if (error) {
+                            console.error('查看失败:', error)
+                          } else {
+                            consistencyReview(tid)
+                          }
+                        })
+                      }
+                    }
+                  )
+                }
+              })
+            })
+          }
+
+          if (message.data.current_type === 'content_review') {
+            const range = JSON.parse(
+              window.localStorage.getItem('range-content')
+            )
+            // const tempData = JSON.parse(window.localStorage.getItem('tempData-content'))
+            addCommentToDocument(range, '')
+          }
+          if (message.data.current_type === 'text_consistency') {
+            const range = JSON.parse(
+              window.localStorage.getItem('range-consistency')
+            )
+            addCommentToDocument(range, (type = 2))
           }
         }
       }
@@ -55,13 +370,13 @@
     window.createWebSocketConnection = createWebSocketConnection
 
     // 发送私信
-    function sendPrivateMessage(text) {
+    function sendPrivateMessage(cdata) {
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(
           JSON.stringify({
             type: 'private_message',
             data: {
-              message: text
+              ...cdata
             }
           })
         )
@@ -80,101 +395,6 @@
     function getDocumentText(callback) {
       me.callCommand(
         function () {
-          function showEditorLoading() {
-            const container =
-              parent.parent.parent.window.parent.window.parent.window[0]
-                .document
-            let loader = container.getElementById('editorLoader')
-            if (!loader) {
-              loader = container.createElement('div')
-              loader.id = 'editorLoader'
-
-              // 创建简单的loading内容
-              loader.innerHTML = `
-                  <div style="
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100vw;
-                    height: 100vh;
-                    background: rgba(0,0,0,0.04);
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    z-index: 9999;
-                    font-family: Arial, sans-serif;
-                    transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
-                    opacity: 1;
-                    visibility: visible;
-                    pointer-events: auto;
-                  ">
-                    <div style="
-                      text-align: center;
-                      color: #333;
-                      padding: 40px;
-                      background: rgba(255,255,255,0.95);
-                      border-radius: 15px;
-                      border: 1px solid rgba(0,0,0,0.1);
-                      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-                      transition: transform 0.5s ease-out;
-                      transform: scale(1);
-                    ">
-                      <div style="
-                        width: 60px;
-                        height: 60px;
-                        border: 4px solid rgba(74,111,230,0.3);
-                        border-top: 4px solid #4A6FE6;
-                        border-radius: 50%;
-                        margin: 0 auto 20px;
-                        animation: spin 1s linear infinite;
-                      "></div>
-                      <h3 style="margin: 0 0 15px 0; font-size: 20px; color: #333;">AI智能校对中...</h3>
-                      <p style="margin: 0; font-size: 14px; color: #666;">正在对文档进行智能审查，请稍候</p>
-                    </div>
-                  </div>
-                `
-
-              // 添加简单的CSS动画
-              const style = container.createElement('style')
-              style.textContent = `
-                  @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                  }
-                `
-
-              container.head.appendChild(style)
-              container.body.appendChild(loader)
-            } else {
-              loader.style.opacity = '1'
-              loader.style.visibility = 'visible'
-              loader.style.display = 'flex'
-              loader.style.pointerEvents = 'auto'
-
-              const titleElement = loader.querySelector('h3')
-              const descElement = loader.querySelector('p')
-              if (titleElement) {
-                titleElement.textContent = 'AI智能校对中...'
-              }
-              if (descElement) {
-                descElement.textContent = '正在对文档进行智能审查，请稍候'
-              }
-
-              // 重新显示旋转动画
-              const spinner = loader.querySelector(
-                'div[style*="border-radius: 50%"]'
-              )
-              if (spinner) {
-                spinner.style.display = 'block'
-                spinner.style.animation = 'spin 1s linear infinite'
-                spinner.style.borderTop = '4px solid #4A6FE6'
-              }
-            }
-            loader.style.display = 'flex'
-          }
-
-          showEditorLoading()
-
           try {
             var doc = Api.GetDocument()
             var fullText = ''
@@ -343,8 +563,7 @@
     // API请求方法
     function callCheckAPI(documentText, callback, tid) {
       var xhr = new XMLHttpRequest()
-      var url =
-        'http://211.90.219.252:28081/zodiac-ym9aZ/prod-api/hzm/audit/check'
+      var url = window.getApiUrl('CHECK')
 
       xhr.open('POST', url, true)
       xhr.setRequestHeader('Accept', 'application/json, text/plain, */*')
@@ -392,8 +611,7 @@
 
     // SSE请求方法
     function callSSEAPI(tid, callback) {
-      var url =
-        'http://211.90.219.252:28081/zodiac-ym9aZ/prod-api/hzm/sse/audit/result'
+      var url = window.getApiUrl('RESULT_SSE')
 
       var lastData = null
 
@@ -501,8 +719,8 @@
       if (type === 2) {
         result = Array.isArray(range)
           ? range.map((item, index) => ({
-              startIndex: item.globalOffset[0] + 1,
-              endIndex: item.globalOffset[1] + 1,
+              startIndex: item.globalOffset[0],
+              endIndex: item.globalOffset[1],
               author: 'AI批注',
               id: index + 1,
               desc: item.desc
@@ -529,25 +747,25 @@
         tempData.keywordOffsets = []
       }
 
-      tempData.deOffsets.forEach((item, index) => {
-        result.push({
-          startIndex: item,
-          endIndex: item + 1,
-          desc: '的不能在首行',
-          author: 'AI批注',
-          id: index + result.length
-        })
-      })
+      // tempData.deOffsets.forEach((item, index) => {
+      //   result.push({
+      //     startIndex: item,
+      //     endIndex: item + 1,
+      //     desc: '的不能在首行',
+      //     author: 'AI批注',
+      //     id: index + result.length
+      //   })
+      // })
 
-      tempData.keywordOffsets.forEach((item, index) => {
-        result.push({
-          startIndex: item,
-          endIndex: item + 5,
-          desc: '需要替换为浙江省人民政府',
-          author: 'AI批注',
-          id: index + result.length
-        })
-      })
+      // tempData.keywordOffsets.forEach((item, index) => {
+      //   result.push({
+      //     startIndex: item,
+      //     endIndex: item + 5,
+      //     desc: '需要替换为浙江省人民政府',
+      //     author: 'AI批注',
+      //     id: index + result.length
+      //   })
+      // })
 
       Asc.scope.targetRanges = result
 
@@ -586,46 +804,6 @@
                   }
                 }
 
-                function hideEditorLoading() {
-                  const container =
-                    parent.parent.parent.window.parent.window.parent.window[0]
-                      .document
-                  const loader = container.getElementById('editorLoader')
-                  if (loader) {
-                    const titleElement = loader.querySelector('h3')
-                    const descElement = loader.querySelector('p')
-                    if (titleElement) {
-                      titleElement.textContent = '校对完成'
-                    }
-                    if (descElement) {
-                      descElement.textContent =
-                        'AI智能校对已完成，批注已添加到文档中'
-                    }
-
-                    // 隐藏旋转动画
-                    const spinner = loader.querySelector(
-                      'div[style*="border-radius: 50%"]'
-                    )
-                    if (spinner) {
-                      spinner.style.display = 'none'
-                    }
-
-                    setTimeout(function () {
-                      loader.style.opacity = '0'
-                      loader.style.visibility = 'hidden'
-                      loader.style.pointerEvents = 'none'
-
-                      // 完全移除DOM元素
-                      setTimeout(function () {
-                        if (loader && loader.parentNode) {
-                          loader.parentNode.removeChild(loader)
-                        }
-                      }, 500)
-                    }, 2000)
-                  }
-                }
-
-                hideEditorLoading()
                 return processedCount
               }
 
@@ -1296,8 +1474,16 @@
                           sseResponse[0].data.result.editing_check_result
                         )
 
-                        addCommentToDocument(range, '', tempData)
-                        sendPrivateMessage('content_review_done')
+                        window.localStorage.setItem(
+                          'range-content',
+                          JSON.stringify(range)
+                        )
+
+                        sendPrivateMessage({
+                          message: 'content_review_done'
+                        })
+
+                        addCommentToDocument(range, '')
                       }
                     }
                   }
@@ -1307,19 +1493,24 @@
             tid
           )
         } else {
-          alert('获取文档文本失败，无法进行API校对')
+          alert('文本为空，无法进行校对')
+
+          sendPrivateMessage({
+            message: 'content_review_done'
+          })
+          sendPrivateMessage({
+            message: 'consistency_review_done'
+          })
+
+          window.localStorage.setItem('range-content', JSON.stringify([]))
+          window.localStorage.setItem('range-consistency', JSON.stringify([]))
         }
       })
     }
 
     this.attachToolbarMenuClickEvent('checkDocument', contentReview)
 
-    /**
-     * 一致性
-     */
-    this.attachToolbarMenuClickEvent('checkDocument2', function (data) {
-      const tid = window.token.split('\n')[2]
-
+    function consistencyReview(tid) {
       getDocumentText(function (documentText) {
         if (documentText) {
           callCheckAPI(
@@ -1331,47 +1522,87 @@
               } else {
                 console.log('API校对结果:', response)
 
-                var sseConnection = callSSEAPI(
-                  tid,
-                  function (sseError, sseResponse, isRealtime) {
-                    if (sseError) {
-                      console.log('SSE请求失败:', sseError)
-                      if (!isRealtime) {
-                        alert('SSE请求失败: ' + sseError)
-                      }
-                    } else {
-                      if (isRealtime) {
-                        console.log('收到实时SSE数据:', sseResponse)
-                      } else {
-                        const range = []
-                        sseResponse[0].data.result.result.forEach((item) => {
-                          if (item.type === 1 || item.type === 2) {
-                            item.itemList.forEach((item) => {
-                              item.contextList.forEach((context) => {
-                                range.push({
-                                  globalOffset: context.globalOffset,
-                                  content: context.content,
-                                  author: 'AI批注',
-                                  desc: item.recommend
-                                })
-                              })
-                            })
+                callViewAPI(tid, (error, response) => {
+                  if (error) {
+                    console.error('查看失败:', error)
+                  } else {
+                    var sseConnection = callSSEAPI(
+                      tid,
+                      function (sseError, sseResponse, isRealtime) {
+                        if (sseError) {
+                          console.log('SSE请求失败:', sseError)
+                          if (!isRealtime) {
+                            console.error('文本一致性请求失败或没有数据: ' + sseError)
+                            // alert('文本一致性请求失败或没有数据: ' + sseError)
                           }
-                        })
-                        addCommentToDocument(range, (type = 2))
+
+                          window.localStorage.setItem(
+                            'range-consistency',
+                            JSON.stringify([])
+                          )
+                          sendPrivateMessage({
+                            message: 'consistency_review_done'
+                          })
+                        } else {
+                          if (isRealtime) {
+                            console.log('收到实时SSE数据:', sseResponse)
+                          } else {
+                            const range = []
+                            sseResponse[0].data.result.result.forEach(
+                              (item) => {
+                                if (item.type === 1 || item.type === 2) {
+                                  item.itemList.forEach((item) => {
+                                    item.contextList.forEach((context) => {
+                                      range.push({
+                                        globalOffset: context.globalOffset,
+                                        content: context.content,
+                                        author: 'AI批注',
+                                        desc: item.recommend
+                                      })
+                                    })
+                                  })
+                                }
+                              }
+                            )
+
+                            window.localStorage.setItem(
+                              'range-consistency',
+                              JSON.stringify(range)
+                            )
+                            sendPrivateMessage({
+                              message: 'consistency_review_done'
+                            })
+                            // addCommentToDocument(range, (type = 2))
+                          }
+                        }
                       }
-                    }
+                    )
                   }
-                )
+                })
               }
             },
             tid
           )
         } else {
-          alert('获取文档文本失败，无法进行API校对')
+          alert('文本为空，无法进行校对')
+
+          sendPrivateMessage({
+            message: 'content_review_done'
+          })
+          sendPrivateMessage({
+            message: 'consistency_review_done'
+          })
+
+          window.localStorage.setItem('range-content', JSON.stringify([]))
+          window.localStorage.setItem('range-consistency', JSON.stringify([]))
         }
       })
-    })
+    }
+
+    /**
+     * 一致性
+     */
+    this.attachToolbarMenuClickEvent('checkDocument2', consistencyReview)
 
     // 插件事件处理
     window.Asc.plugin.onExternalMouseUp = function () {
@@ -1410,9 +1641,13 @@
       window.token = id.slice(4)
 
       const connectId = window.token.split('\n')[3]
-      if (connectId && window.lastConnectId !== connectId && window.createWebSocketConnection) {
+      if (
+        connectId &&
+        window.lastConnectId !== connectId &&
+        window.createWebSocketConnection
+      ) {
         window.lastConnectId = connectId
-        window.createWebSocketConnection(connectId) 
+        window.createWebSocketConnection(connectId)
       }
     }
   })
