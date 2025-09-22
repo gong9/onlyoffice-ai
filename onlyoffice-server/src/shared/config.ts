@@ -10,7 +10,8 @@ export default () => ({
   onlyoffice: {
     secret: process.env.ONLYOFFICE_SECRET,
     domain: process.env.ONLYOFFICE_DOMAIN,
-    commandUrl: process.env.ONLYOFFICE_COMMAND_URL,
+    commandUrl:
+      process.env.ONLYOFFICE_DOMAIN + '/coauthoring/CommandService.ashx',
     callback: process.env.ONLYOFFICE_CALLBACK,
   },
 });

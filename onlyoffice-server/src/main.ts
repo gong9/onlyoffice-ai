@@ -58,11 +58,11 @@ async function bootstrap() {
 
   // 获取 WebSocket 服务并初始化
   const websocketService = app.get(WebSocketService);
-  websocketService.initialize(httpServer, '/ws');
+  websocketService.initialize(httpServer, `${process.env.API_PREFIX}/v1/ws`);
 
   console.log(`应用已启动在端口 ${process.env.PORT}`);
   console.log(
-    `WebSocket 服务已启动，连接地址: ws://localhost:${process.env.PORT}/ws`,
+    `WebSocket 服务已启动，连接地址: ws://localhost:${process.env.PORT}${process.env.API_PREFIX}/v1/ws`,
   );
 }
 bootstrap();
