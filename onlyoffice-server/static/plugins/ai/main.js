@@ -266,7 +266,7 @@
         ws.close()
       }
 
-      ws = new WebSocket('ws://211.90.219.252:8081/ws')
+      ws = new WebSocket('ws://211.90.219.252:8081/api/v1/ws')
 
       ws.onopen = function () {
         ws.send(
@@ -306,7 +306,7 @@
           }
           if (message.data.file_key) {
             urlToFile(
-              'http://127.0.0.1:3000/static/' + message.data.file_key
+              'http://211.90.219.252:8081/static/' + message.data.file_key
             ).then((file) => {
               callUploadAPI(file, (error, response) => {
                 if (error) {
